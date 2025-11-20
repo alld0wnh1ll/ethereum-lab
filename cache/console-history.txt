@@ -1,0 +1,29 @@
+});
+value: ethers.parseEther("0.5")
+to: friend.address,
+await me.sendTransaction({
+const [me, friend] = await ethers.getSigners();
+console.log(ethers.formatEther(bal), "ETH");
+const bal = await ethers.provider.getBalance(me.address);
+const [me] = await ethers.getSigners();
+await ethers.provider.getBlockNumber();
+console.log(ethers.formatEther(balance), "ETH");
+const balance = await ethers.provider.getBalance("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost
+});
+value: ethers.parseEther("1.0")
+to: receiver.address,
+await sender.sendTransaction({
+});
+  to: receiver.addr  value: ethers.parseEther("1.0")
+await sender.sendTransaction({
+const [sender, receiver] = await ethers.getSigners
+});
+  value: ethers.parseEther("1.0")
+await sender.sendTransa  to: receiver.address,
+const [sender, receiver] = await ethers.getSigners();
+# In the console, run:
+quit()
+quit
+exit
+npx hardhat compile

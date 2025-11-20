@@ -1,0 +1,37 @@
+{
+  "name": "Ethereum Lab",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  
+  "postCreateCommand": "npm install",
+  
+  "forwardPorts": [8545, 5173],
+  "portsAttributes": {
+    "8545": {
+      "label": "Blockchain RPC",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Frontend",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "NomicFoundation.hardhat-solidity",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  }
+}
+

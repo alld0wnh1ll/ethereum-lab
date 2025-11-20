@@ -2,7 +2,7 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\Lock.sol": {
-      "lastModificationDate": 1763565067494,
+      "lastModificationDate": 1763565464813,
       "contentHash": "bd7fed5026b3e84cef024d695997642f",
       "sourceName": "contracts/Lock.sol",
       "solcConfig": {
@@ -34,6 +34,41 @@
       ],
       "artifacts": [
         "Lock"
+      ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\MyStakingPool.sol": {
+      "lastModificationDate": 1763659734722,
+      "contentHash": "562b7dd22467ddfff720282b06c1d49b",
+      "sourceName": "contracts/MyStakingPool.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "MyStakingPool"
       ]
     },
     "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\PoS.sol": {
@@ -69,6 +104,41 @@
       ],
       "artifacts": [
         "PoSSimulator"
+      ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\SimpleStorage.sol": {
+      "lastModificationDate": 1763659734718,
+      "contentHash": "ee802856d7180c6a91aa758cc2edc1da",
+      "sourceName": "contracts/SimpleStorage.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "SimpleStorage"
       ]
     }
   }

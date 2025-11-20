@@ -1,6 +1,21 @@
 # Local Web3 Training Environment
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alld0wnh1ll/ethereum-lab)
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/alld0wnh1ll/ethereum-lab)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://alld0wnh1ll.github.io/ethereum-lab/)
+
 This is a lightweight, offline-capable Web3 development environment powered by Hardhat. It simulates a smart contract environment with instant block mining, full RPC interface, and pre-funded accounts.
+
+## 🚀 Quick Start Options
+
+**Option 1: Cloud IDE (No Installation Required)**
+- Click the "Open in GitHub Codespaces" or "Open in Gitpod" button above
+- Get a full terminal and IDE in your browser
+- All dependencies pre-installed
+
+**Option 2: Local Setup (Traditional)**
+- Follow the installation instructions below
+- Run on your own computer
 
 ## Features
 - **Instant Block Mining:** No waiting for confirmations.
