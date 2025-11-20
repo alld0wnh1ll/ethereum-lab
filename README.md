@@ -6,16 +6,41 @@
 
 This is a lightweight, offline-capable Web3 development environment powered by Hardhat. It simulates a smart contract environment with instant block mining, full RPC interface, and pre-funded accounts.
 
-## 🚀 Quick Start Options
+## 🚀 Quick Start for Students
 
-**Option 1: Cloud IDE (No Installation Required)**
-- Click the "Open in GitHub Codespaces" or "Open in Gitpod" button above
-- Get a full terminal and IDE in your browser
-- All dependencies pre-installed
+### **Recommended: GitHub Codespaces (No Installation Required)**
 
-**Option 2: Local Setup (Traditional)**
-- Follow the installation instructions below
-- Run on your own computer
+1. Click the badge above: [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alld0wnh1ll/ethereum-lab)
+
+2. Wait ~30 seconds for your environment to load
+
+3. You'll get:
+   - ✅ Full VS Code editor in your browser
+   - ✅ Terminal with bash/PowerShell
+   - ✅ All dependencies pre-installed (Node.js, Hardhat, etc.)
+   - ✅ No setup required!
+
+4. Start the blockchain:
+   ```bash
+   npx hardhat node
+   ```
+
+5. Open a new terminal and run CLI labs:
+   ```bash
+   npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost
+   ```
+
+6. Access the web interface:
+   - Codespaces will forward port 5173
+   - Click the popup to open the frontend
+   - Or run: `npm run web`
+
+**💡 Free for Students:** GitHub Student Pack gives unlimited Codespaces hours!
+
+---
+
+### **Alternative: Local Setup**
+If you prefer to run on your own computer, follow the installation instructions below.
 
 ## Features
 - **Instant Block Mining:** No waiting for confirmations.

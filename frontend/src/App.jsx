@@ -2382,38 +2382,80 @@ await me.sendTransaction({
                 </div>
             )}
 
-            {/* Documentation Link */}
+            {/* Codespaces CTA */}
             {!selectedLab && (
-                <div style={{
-                    marginTop: '2rem',
-                    padding: '1.5rem',
-                    background: 'rgba(59,130,246,0.15)',
-                    borderRadius: '1rem',
-                    border: '2px solid rgba(59,130,246,0.4)',
-                    textAlign: 'center'
-                }}>
-                    <h3 style={{color: '#93c5fd', marginTop: 0}}>📚 Need More Details?</h3>
-                    <p style={{color: '#cbd5e1', marginBottom: '1rem'}}>
-                        For complete documentation with all 7 labs, testing guides, and advanced exercises:
-                    </p>
-                    <a 
-                        href="https://github.com/nicholas-harrell_usma/ethereum_lab/blob/main/CLI_LABS.md"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            display: 'inline-block',
-                            padding: '1rem 2rem',
-                            background: '#3b82f6',
-                            color: 'white',
-                            textDecoration: 'none',
-                            borderRadius: '0.5rem',
-                            fontWeight: 'bold',
-                            fontSize: '1.05rem'
-                        }}
-                    >
-                        📖 View Full CLI_LABS.md on GitHub
-                    </a>
-                </div>
+                <>
+                    <div style={{
+                        marginTop: '2rem',
+                        padding: '2rem',
+                        background: 'linear-gradient(135deg, #2ea043 0%, #1f883d 100%)',
+                        borderRadius: '1rem',
+                        textAlign: 'center',
+                        color: 'white',
+                        boxShadow: '0 8px 24px rgba(46,160,67,0.3)'
+                    }}>
+                        <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🚀</div>
+                        <h3 style={{margin: '0 0 1rem 0', fontSize: '1.8rem'}}>Ready to Start?</h3>
+                        <p style={{fontSize: '1.1rem', marginBottom: '1.5rem', opacity: 0.95}}>
+                            Get a full development environment with terminal in your browser - no installation required!
+                        </p>
+                        <a 
+                            href="https://codespaces.new/alld0wnh1ll/ethereum-lab"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-block',
+                                padding: '1.25rem 2.5rem',
+                                background: 'white',
+                                color: '#1f883d',
+                                textDecoration: 'none',
+                                borderRadius: '0.75rem',
+                                fontWeight: 'bold',
+                                fontSize: '1.2rem',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                                transition: 'transform 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            🖥️ Open in GitHub Codespaces
+                        </a>
+                        <p style={{fontSize: '0.9rem', marginTop: '1rem', opacity: 0.9}}>
+                            ✨ Free with GitHub Student Pack | Includes VS Code + Terminal + All Dependencies
+                        </p>
+                    </div>
+
+                    <div style={{
+                        marginTop: '2rem',
+                        padding: '1.5rem',
+                        background: 'rgba(59,130,246,0.15)',
+                        borderRadius: '1rem',
+                        border: '2px solid rgba(59,130,246,0.4)',
+                        textAlign: 'center'
+                    }}>
+                        <h3 style={{color: '#93c5fd', marginTop: 0}}>📚 Full Documentation</h3>
+                        <p style={{color: '#cbd5e1', marginBottom: '1rem'}}>
+                            For complete documentation with all 7 labs, testing guides, and advanced exercises:
+                        </p>
+                        <a 
+                            href="https://github.com/alld0wnh1ll/ethereum-lab/blob/main/CLI_LABS.md"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-block',
+                                padding: '1rem 2rem',
+                                background: '#3b82f6',
+                                color: 'white',
+                                textDecoration: 'none',
+                                borderRadius: '0.5rem',
+                                fontWeight: 'bold',
+                                fontSize: '1.05rem'
+                            }}
+                        >
+                            📖 View CLI_LABS.md on GitHub
+                        </a>
+                    </div>
+                </>
             )}
         </div>
     );
