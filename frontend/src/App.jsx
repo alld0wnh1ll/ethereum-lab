@@ -303,37 +303,70 @@ function App() {
 
   // 1. Initialize Provider
   useEffect(() => {
+    const sanitizedUrl = (rpcUrl || "").trim()
+    if (!sanitizedUrl) {
+        setProvider(null)
+        setNodeStatus({ connected: false, blockNumber: 0 })
+        return
+    }
     try {
-        const newProvider = new ethers.JsonRpcProvider(rpcUrl)
+        const newProvider = new ethers.JsonRpcProvider(sanitizedUrl)
         setProvider(newProvider)
     } catch (e) {
-        console.error("Invalid URL")
+        console.error("Invalid RPC URL:", e)
+        setProvider(null)
+        setNodeStatus({ connected: false, blockNumber: 0 })
     }
   }, [rpcUrl])
 
   // 2. Auto-Connect Logic (Only in Live Mode)
   useEffect(() => {
-    if (view !== 'live' || !provider) return;
+    if (view !== 'live' || !provider || wallet.mode === 'metamask') return;
+
+    let cancelled = false
 
     const check = async () => {
       try {
         const bn = await provider.getBlockNumber()
-        setNodeStatus({ connected: true, blockNumber: bn })
-      } catch (e) { setNodeStatus({ connected: false, blockNumber: 0 }) }
+        if (!cancelled) {
+            setNodeStatus({ connected: true, blockNumber: bn })
+        }
+      } catch (e) { 
+        if (!cancelled) {
+            setNodeStatus({ connected: false, blockNumber: 0 })
+        }
+      }
     }
     check();
     const interval = setInterval(check, 2000);
 
-    if (!wallet.address) {
-        const { mode, signer } = getGuestWallet()
-        signer.getAddress().then(async (addr) => {
-             const connectedSigner = signer.connect(provider)
-             const bal = await provider.getBalance(addr).catch(() => 0n)
-             setWallet({ address: addr, signer: connectedSigner, balance: ethers.formatEther(bal), mode: 'guest' })
-        })
+    const hydrateGuestWallet = async () => {
+        try {
+            const { mode, signer } = getGuestWallet()
+            const addr = await signer.getAddress()
+            const connectedSigner = signer.connect(provider)
+            const bal = await provider.getBalance(addr).catch(() => 0n)
+            if (!cancelled) {
+                setWallet(prev => ({
+                    ...prev,
+                    address: addr,
+                    signer: connectedSigner,
+                    balance: ethers.formatEther(bal),
+                    mode: mode || 'guest'
+                }))
+            }
+        } catch (err) {
+            console.error("Guest wallet init failed:", err)
+        }
     }
-    return () => clearInterval(interval);
-  }, [provider, view]);
+
+    hydrateGuestWallet()
+
+    return () => {
+        cancelled = true
+        clearInterval(interval)
+    }
+  }, [provider, view, wallet.mode]);
 
   // Real-time balance updates
   useEffect(() => {
