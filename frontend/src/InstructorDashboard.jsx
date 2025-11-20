@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 
-const InstructorDashboard = ({ provider, posAddress }) => {
+const BANK_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
+const InstructorDashboard = ({ provider, posAddress, rpcUrl }) => {
     const [students, setStudents] = useState([])
     const [contractBalance, setContractBalance] = useState('0')
     const [totalStaked, setTotalStaked] = useState('0')
@@ -136,9 +138,74 @@ const InstructorDashboard = ({ provider, posAddress }) => {
         }
     }
     
+    const deployNewContract = async () => {
+        if (!confirm("Deploy a new PoS contract? Students will need the new address.")) return;
+        
+        try {
+            // This would require the contract ABI and bytecode
+            alert("To deploy a new contract, run: npm run deploy\nThen update the contract address in the dashboard.");
+        } catch (e) {
+            console.error("Deployment error:", e);
+        }
+    }
+    
+    const clearChatHistory = () => {
+        if (!confirm("Clear chat history? This cannot be undone. (Note: blockchain events are permanent, but we can reset the UI)")) return;
+        alert("Chat clearing requires redeployment of a new contract. Run: npm run deploy");
+    }
+    
+    const resetStudentBalances = async () => {
+        if (!confirm("Send 5 ETH to all students to reset their balances?")) return;
+        
+        try {
+            const bankProvider = new ethers.JsonRpcProvider(rpcUrl)
+            const bankWallet = new ethers.Wallet(BANK_PRIVATE_KEY, bankProvider)
+            
+            for (const student of students) {
+                const tx = await bankWallet.sendTransaction({
+                    to: student.address,
+                    value: ethers.parseEther("5.0")
+                })
+                await tx.wait()
+            }
+            alert(`Sent 5 ETH to ${students.length} students!`)
+        } catch (e) {
+            console.error("Reset error:", e)
+            alert("Failed to reset balances: " + e.message)
+        }
+    }
+
     return (
         <div className="instructor-dashboard">
             <h2>🎓 Instructor Dashboard</h2>
+            
+            {/* Instructor Controls */}
+            <div className="instructor-controls" style={{marginBottom: '20px', padding: '15px', background: '#fef3c7', borderRadius: '8px'}}>
+                <h3 style={{marginBottom: '15px', color: '#1e293b'}}>🎛️ Instructor Controls</h3>
+                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                    <button 
+                        onClick={deployNewContract}
+                        style={{padding: '10px 15px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
+                    >
+                        🚀 Deploy New Contract
+                    </button>
+                    <button 
+                        onClick={clearChatHistory}
+                        style={{padding: '10px 15px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
+                    >
+                        🗑️ Clear Chat (Requires Redeploy)
+                    </button>
+                    <button 
+                        onClick={resetStudentBalances}
+                        style={{padding: '10px 15px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer'}}
+                    >
+                        💰 Send 5 ETH to All Students
+                    </button>
+                </div>
+                <p style={{fontSize: '12px', marginTop: '10px', color: '#475569'}}>
+                    <strong style={{color: '#1e293b'}}>Note:</strong> Blockchain data is permanent. To truly reset, deploy a new contract and share the new address.
+                </p>
+            </div>
             
             {/* Overview Stats */}
             <div className="instructor-stats">

@@ -173,18 +173,75 @@ body {
 }
 
 /* Learning View */
-.learn-container { max-width: 800px; margin: 0 auto; }
+.learn-container { max-width: 900px; margin: 0 auto; }
 .slides-grid {
     display: grid;
-    gap: 1.5rem;
+    gap: 2rem;
     margin-top: 2rem;
 }
-.concept-box {
-    background: rgba(0,0,0,0.3);
-    padding: 1rem;
-    border-radius: 0.5rem;
+.lesson-slide {
+    background: #1e293b;
+    padding: 2.5rem;
+    border-radius: 1rem;
+    border: 1px solid #334155;
+    line-height: 1.8;
+    font-size: 1.05rem;
+}
+.lesson-slide h3 {
+    color: #fbbf24;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
+.lesson-slide h4 {
+    color: #60a5fa;
+    font-size: 1.3rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+.lesson-slide p {
+    margin-bottom: 1rem;
+    color: #e2e8f0;
+}
+.lesson-slide ul {
     margin: 1rem 0;
-    font-family: monospace;
+    padding-left: 1.5rem;
+}
+.lesson-slide li {
+    margin-bottom: 0.75rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+.lesson-slide strong {
+    color: #fbbf24;
+}
+.slide-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.slide-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.concept-box {
+    background: rgba(15, 23, 42, 0.8);
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    margin: 1.5rem 0;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    font-size: 1rem;
+}
+.concept-box h4 {
+    margin-top: 0;
+    color: #a78bfa;
+}
+.concept-box ul {
+    margin-bottom: 0;
+}
+.concept-box[style*="background: #e6f7ed"] {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.4);
+}
+.concept-box[style*="background: #e6f7ed"] h4 {
+    color: #34d399;
 }
 
 /* Orientation + Concepts + Explore */
@@ -242,9 +299,15 @@ body {
 
 .concepts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
     margin: 2rem 0;
+}
+
+@media (max-width: 900px) {
+    .concepts-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .concept-card {
@@ -264,6 +327,26 @@ body {
     padding-left: 1rem;
     color: #cbd5f5;
     font-size: 0.9rem;
+}
+
+.concept-card h3 {
+    color: #f8fafc;
+}
+
+.concept-card p {
+    color: #cbd5e1;
+}
+
+/* White background sections need dark text */
+.concept-card [style*="background: white"],
+.concept-card [style*="background:white"] {
+    color: #1e293b !important;
+}
+
+.concept-card [style*="background: white"] h4,
+.concept-card [style*="background: white"] p,
+.concept-card [style*="background: white"] strong {
+    color: #1e293b !important;
 }
 
 .section-subtitle {
