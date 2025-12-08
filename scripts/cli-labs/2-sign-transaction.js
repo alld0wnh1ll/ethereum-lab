@@ -1,33 +1,45 @@
-const { ethers } = require("hardhat");
+/**
+ * CLI Lab 2: Manual Transaction Signing
+ * 
+ * Learn how transactions work:
+ * - Creating a transaction object
+ * - Signing with private key
+ * - Broadcasting to the network
+ * - Understanding gas costs
+ */
+
+const { BlockchainEnv } = require("../../lib/BlockchainEnv");
 
 async function main() {
-  console.log("\n✍️  LAB 2: Manual Transaction Signing\n");
-  console.log("=".repeat(50));
+  const env = new BlockchainEnv();
   
-  const [sender, receiver] = await ethers.getSigners();
+  env.printHeader("✍️  LAB 2: Manual Transaction Signing");
+  
+  const [sender, receiver] = await env.getSigners();
   
   console.log("\n--- Accounts ---");
   console.log("Sender:", sender.address);
   console.log("Receiver:", receiver.address);
   
   // Check balances before
-  const senderBalBefore = await ethers.provider.getBalance(sender.address);
-  const receiverBalBefore = await ethers.provider.getBalance(receiver.address);
+  const senderBalBefore = await env.getBalanceRaw(sender.address);
+  const receiverBalBefore = await env.getBalanceRaw(receiver.address);
   
   console.log("\n--- Before Transaction ---");
-  console.log(`Sender: ${ethers.formatEther(senderBalBefore)} ETH`);
-  console.log(`Receiver: ${ethers.formatEther(receiverBalBefore)} ETH`);
+  console.log(`Sender: ${env.formatEther(senderBalBefore)} ETH`);
+  console.log(`Receiver: ${env.formatEther(receiverBalBefore)} ETH`);
   
   // Create transaction
+  const txValue = env.parseEther("1.5");
   const tx = {
     to: receiver.address,
-    value: ethers.parseEther("1.5"),
+    value: txValue,
     gasLimit: 21000,
   };
   
   console.log("\n--- Transaction Object ---");
   console.log("To:", tx.to);
-  console.log("Value:", ethers.formatEther(tx.value), "ETH");
+  console.log("Value:", env.formatEther(tx.value), "ETH");
   console.log("Gas Limit:", tx.gasLimit);
   
   // Sign and send
@@ -42,29 +54,29 @@ async function main() {
   const receipt = await txResponse.wait();
   console.log("✓ Confirmed in block:", receipt.blockNumber);
   console.log("Gas Used:", receipt.gasUsed.toString());
-  console.log("Gas Price:", ethers.formatUnits(receipt.gasPrice, "gwei"), "Gwei");
+  console.log("Gas Price:", env.formatGwei(receipt.gasPrice), "Gwei");
   
   // Check balances after
-  const senderBalAfter = await ethers.provider.getBalance(sender.address);
-  const receiverBalAfter = await ethers.provider.getBalance(receiver.address);
+  const senderBalAfter = await env.getBalanceRaw(sender.address);
+  const receiverBalAfter = await env.getBalanceRaw(receiver.address);
   
   console.log("\n--- After Transaction ---");
-  console.log(`Sender: ${ethers.formatEther(senderBalAfter)} ETH`);
-  console.log(`Receiver: ${ethers.formatEther(receiverBalAfter)} ETH`);
+  console.log(`Sender: ${env.formatEther(senderBalAfter)} ETH`);
+  console.log(`Receiver: ${env.formatEther(receiverBalAfter)} ETH`);
   
   // Calculate costs
   const gasCost = receipt.gasUsed * receipt.gasPrice;
-  const totalCost = tx.value + gasCost;
+  const totalCost = txValue + gasCost;
   
   console.log("\n--- Cost Breakdown ---");
-  console.log(`Amount sent: ${ethers.formatEther(tx.value)} ETH`);
-  console.log(`Gas cost: ${ethers.formatEther(gasCost)} ETH`);
-  console.log(`Total deducted: ${ethers.formatEther(totalCost)} ETH`);
+  console.log(`Amount sent: ${env.formatEther(txValue)} ETH`);
+  console.log(`Gas cost: ${env.formatEther(gasCost)} ETH`);
+  console.log(`Total deducted: ${env.formatEther(totalCost)} ETH`);
   
   const actualDeduction = senderBalBefore - senderBalAfter;
-  console.log(`Actual deduction: ${ethers.formatEther(actualDeduction)} ETH`);
+  console.log(`Actual deduction: ${env.formatEther(actualDeduction)} ETH`);
   
-  console.log("\n" + "=".repeat(50));
+  env.printSeparator();
   console.log("✅ Lab 2 Complete!");
   console.log("\n💡 Key Takeaways:");
   console.log("   - Every transaction requires a signature");
@@ -77,4 +89,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

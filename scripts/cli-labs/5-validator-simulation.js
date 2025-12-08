@@ -1,7 +1,16 @@
-const { ethers } = require("hardhat");
+/**
+ * CLI Lab 5: Proof of Stake Validator Simulation
+ * 
+ * Learn how PoS validator selection works:
+ * - Weighted random selection based on stake
+ * - Running simulation rounds
+ * - Analyzing selection distribution
+ */
+
+const { BlockchainEnv } = require("../../lib/BlockchainEnv");
 const fs = require("fs");
 
-async function weightedRandomSelection(validators, stakes) {
+function weightedRandomSelection(validators, stakes) {
   const totalStake = stakes.reduce((a, b) => a + b, 0n);
   const random = BigInt(Math.floor(Math.random() * Number(totalStake)));
   
@@ -16,8 +25,9 @@ async function weightedRandomSelection(validators, stakes) {
 }
 
 async function main() {
-  console.log("\n🏦 LAB 5: Proof of Stake Validator Simulation\n");
-  console.log("=".repeat(50));
+  const env = new BlockchainEnv();
+  
+  env.printHeader("🏦 LAB 5: Proof of Stake Validator Simulation");
   
   // Check if PoS contract is deployed
   let posAddress;
@@ -30,7 +40,7 @@ async function main() {
   }
   
   const PoSABI = require("../../frontend/src/PoS.json");
-  const contract = new ethers.Contract(posAddress, PoSABI, ethers.provider);
+  const contract = new (require("ethers").Contract)(posAddress, PoSABI, env.provider);
   
   // Get all validators
   console.log("\n--- Fetching Validators ---");
@@ -58,21 +68,21 @@ async function main() {
   
   console.log("--- Validator Pool ---");
   validators.forEach((v, i) => {
-    const stakeETH = ethers.formatEther(stakes[i]);
+    const stakeETH = env.formatEther(stakes[i]);
     const probability = (Number(stakes[i]) * 100 / Number(totalStake)).toFixed(2);
     console.log(`${i + 1}. ${v}`);
     console.log(`   Stake: ${stakeETH} ETH`);
     console.log(`   Selection Probability: ${probability}%`);
   });
   
-  console.log(`\nTotal Network Stake: ${ethers.formatEther(totalStake)} ETH`);
+  console.log(`\nTotal Network Stake: ${env.formatEther(totalStake)} ETH`);
   
   // Run simulation
   console.log("\n--- Running 100 Block Proposals ---");
   const selections = new Array(validators.length).fill(0);
   
   for (let i = 0; i < 100; i++) {
-    const selected = await weightedRandomSelection(validators, stakes);
+    const selected = weightedRandomSelection(validators, stakes);
     selections[selected]++;
   }
   
@@ -85,7 +95,7 @@ async function main() {
     console.log(`   Selected: ${actual} times`);
   });
   
-  console.log("\n" + "=".repeat(50));
+  env.printSeparator();
   console.log("✅ Lab 5 Complete!");
   console.log("\n💡 Observations:");
   console.log("   - Higher stake = More selections (but not guaranteed)");
@@ -97,4 +107,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

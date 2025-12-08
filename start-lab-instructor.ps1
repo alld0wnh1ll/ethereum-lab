@@ -28,7 +28,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "npm run chain"
 
 # Wait for node to boot
 Write-Host "Waiting for node to start..." -ForegroundColor Yellow
-$maxAttempts = 30
+$maxAttempts = 60
 $attempt = 0
 $nodeReady = $false
 

@@ -1,42 +1,45 @@
-const { ethers } = require("hardhat");
+/**
+ * CLI Lab 1: Exploring the Blockchain
+ * 
+ * Learn how to query basic blockchain information:
+ * - Current block number
+ * - Block details
+ * - Account balances
+ * - Network information
+ */
+
+const { BlockchainEnv } = require("../../lib/BlockchainEnv");
 
 async function main() {
-  console.log("\n🔍 LAB 1: Exploring the Blockchain\n");
-  console.log("=" .repeat(50));
+  const env = new BlockchainEnv();
   
-  const provider = ethers.provider;
+  env.printHeader("🔍 LAB 1: Exploring the Blockchain");
   
-  // Get latest block
-  const blockNumber = await provider.getBlockNumber();
+  // Get current block number
+  const blockNumber = await env.getBlockNumber();
   console.log("\n📊 Current Block Number:", blockNumber);
   
   // Get block details
-  const block = await provider.getBlock(blockNumber);
+  const block = await env.getBlockInfo(blockNumber);
   console.log("\n--- Block Details ---");
   console.log("Hash:", block.hash);
   console.log("Parent Hash:", block.parentHash);
-  console.log("Timestamp:", new Date(block.timestamp * 1000).toLocaleString());
-  console.log("Transactions:", block.transactions.length);
-  console.log("Gas Used:", block.gasUsed.toString());
-  console.log("Gas Limit:", block.gasLimit.toString());
+  console.log("Timestamp:", block.timestamp.toLocaleString());
+  console.log("Transactions:", block.txCount);
+  console.log("Gas Used:", block.gasUsed);
+  console.log("Gas Limit:", block.gasLimit);
   console.log("Miner/Validator:", block.miner);
   
   // Get network info
-  const network = await provider.getNetwork();
+  const network = await env.getNetwork();
   console.log("\n--- Network Info ---");
   console.log("Chain ID:", network.chainId.toString());
   console.log("Name:", network.name);
   
-  // Get account balances
-  console.log("\n--- Pre-funded Accounts ---");
-  const accounts = await ethers.getSigners();
-  for (let i = 0; i < 5; i++) {
-    const balance = await provider.getBalance(accounts[i].address);
-    console.log(`Account ${i}: ${accounts[i].address}`);
-    console.log(`  Balance: ${ethers.formatEther(balance)} ETH`);
-  }
+  // Show pre-funded account balances
+  await env.printAccountBalances(5);
   
-  console.log("\n" + "=".repeat(50));
+  env.printSeparator();
   console.log("✅ Lab 1 Complete!");
   console.log("\n💡 Try this:");
   console.log("   - Send a transaction and run this script again");
@@ -48,4 +51,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

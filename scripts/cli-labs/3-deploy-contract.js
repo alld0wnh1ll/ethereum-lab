@@ -1,22 +1,33 @@
-const hre = require("hardhat");
+/**
+ * CLI Lab 3: Smart Contract Deployment
+ * 
+ * Learn how to deploy smart contracts:
+ * - Compiling Solidity code
+ * - Understanding contract factories
+ * - Deploying to the blockchain
+ * - Interacting with deployed contracts
+ */
+
+const { BlockchainEnv } = require("../../lib/BlockchainEnv");
 const fs = require("fs");
 
 async function main() {
-  console.log("\n🚀 LAB 3: Smart Contract Deployment\n");
-  console.log("=".repeat(50));
+  const env = new BlockchainEnv();
   
-  const [deployer] = await hre.ethers.getSigners();
+  env.printHeader("🚀 LAB 3: Smart Contract Deployment");
+  
+  const deployer = await env.getSigner(0);
   
   console.log("\n--- Deployer Account ---");
   console.log("Address:", deployer.address);
-  const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("Balance:", ethers.formatEther(balance), "ETH");
+  const balance = await env.getBalance(deployer.address);
+  console.log("Balance:", balance, "ETH");
   
   // Deploy SimpleStorage
   console.log("\n--- Compiling Contract ---");
   console.log("Compiling SimpleStorage.sol...");
   
-  const SimpleStorage = await hre.ethers.getContractFactory("SimpleStorage");
+  const SimpleStorage = await env.getContractFactory("SimpleStorage");
   
   console.log("\n--- Deploying Contract ---");
   console.log("Sending deployment transaction...");
@@ -31,7 +42,7 @@ async function main() {
   console.log("✓ Contract deployed!");
   console.log("Contract Address:", address);
   
-  // Save address
+  // Save address for other scripts
   fs.writeFileSync("SIMPLE_STORAGE_ADDRESS.txt", address);
   
   // Get deployment transaction receipt
@@ -39,10 +50,10 @@ async function main() {
   console.log("\n--- Deployment Details ---");
   console.log("Block Number:", receipt.blockNumber);
   console.log("Gas Used:", receipt.gasUsed.toString());
-  console.log("Gas Price:", ethers.formatUnits(receipt.gasPrice, "gwei"), "Gwei");
+  console.log("Gas Price:", env.formatGwei(receipt.gasPrice), "Gwei");
   
   const deploymentCost = receipt.gasUsed * receipt.gasPrice;
-  console.log("Deployment Cost:", ethers.formatEther(deploymentCost), "ETH");
+  console.log("Deployment Cost:", env.formatEther(deploymentCost), "ETH");
   
   // Test the contract
   console.log("\n--- Testing Contract ---");
@@ -58,7 +69,7 @@ async function main() {
   console.log("Contract owner:", owner);
   console.log("Is deployer the owner?", owner === deployer.address);
   
-  console.log("\n" + "=".repeat(50));
+  env.printSeparator();
   console.log("✅ Lab 3 Complete!");
   console.log("\n💡 Next Steps:");
   console.log("   - Try deploying your own contract");
@@ -70,4 +81,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-
