@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 import { connectWallet, checkNodeStatus, getGuestWallet } from './web3'
 import PoSABI from './PoS.json'
-import InstructorDashboard from './InstructorDashboard'
+import { InstructorView } from './views/InstructorView'
 import './index.css'
 
 // Hardhat default private key for Account #0 (The "Bank")
@@ -3174,7 +3174,22 @@ function App() {
   
   // Transaction History
   const [txHistory, setTxHistory] = useState([])
-  const [myStake, setMyStake] = useState({ amount: '0', reward: '0' })
+  const [myStake, setMyStake] = useState({ 
+    amount: '0', 
+    reward: '0',
+    slashCount: 0,
+    blocksProposed: 0,
+    missedAttestations: 0,
+    unbondingTime: 0,
+    minStakeDuration: 0,
+    hasAttestedThisEpoch: false
+  })
+  
+  // Enhanced PoS State
+  const [currentEpoch, setCurrentEpoch] = useState(1)
+  const [timeUntilNextEpoch, setTimeUntilNextEpoch] = useState(0)
+  const [currentAPY, setCurrentAPY] = useState(5)
+  const [withdrawalRequested, setWithdrawalRequested] = useState(false)
 
   const saveTrail = (next) => {
     setTrail(next)
@@ -3321,12 +3336,34 @@ function App() {
       if (!posAddress || posAddress.length !== 42) return
       try {
         const contract = new ethers.Contract(posAddress, PoSABI, provider)
-        const stake = await contract.stakes(wallet.address)
-        const reward = await contract.calculateReward(wallet.address)
+        
+        // Get comprehensive validator stats
+        const [stats, epoch, epochTime, apy, hasAttested, minDuration, unbonding] = await Promise.all([
+          contract.getValidatorStats(wallet.address),
+          contract.currentEpoch(),
+          contract.getTimeUntilNextEpoch(),
+          contract.getCurrentAPY(),
+          contract.hasAttestedThisEpoch(wallet.address),
+          contract.getMinStakeDurationRemaining(wallet.address),
+          contract.withdrawalRequestTime(wallet.address)
+        ])
+        
         setMyStake({
-          amount: ethers.formatEther(stake),
-          reward: ethers.formatEther(reward)
+          amount: ethers.formatEther(stats.stakeAmount),
+          reward: ethers.formatEther(stats.rewardAmount),
+          slashCount: Number(stats.slashes),
+          blocksProposed: Number(stats.blocks),
+          missedAttestations: Number(stats.attestations),
+          unbondingTime: Number(stats.unbondingTime),
+          minStakeDuration: Number(minDuration),
+          hasAttestedThisEpoch: hasAttested
         })
+        
+        setCurrentEpoch(Number(epoch))
+        setTimeUntilNextEpoch(Number(epochTime))
+        setCurrentAPY(Number(apy) / 100) // Convert from 500 to 5.00
+        setWithdrawalRequested(Number(unbonding) > 0)
+        
       } catch (e) {
         console.error("Stake info error:", e)
       }
@@ -3993,23 +4030,145 @@ function App() {
                             </div>
                         </section>
 
-                        {/* Staking Section */}
+                        {/* Staking Section - Enhanced */}
                         <section className="card" id="stake-section">
                             <h3>🏦 Proof of Stake - Become a Validator</h3>
                             <p style={{fontSize: '14px', color: '#cbd5e1', marginBottom: '15px'}}>
                                 Stake your ETH to participate in block validation and earn rewards!
                             </p>
                             
+                            {/* Network Stats Bar */}
+                            <div style={{
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(3, 1fr)', 
+                                gap: '10px', 
+                                marginBottom: '15px',
+                                padding: '12px',
+                                background: 'rgba(139, 92, 246, 0.15)',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(139, 92, 246, 0.3)'
+                            }}>
+                                <div style={{textAlign: 'center'}}>
+                                    <div style={{fontSize: '0.75rem', color: '#a78bfa'}}>Current APY</div>
+                                    <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#fbbf24'}}>{currentAPY.toFixed(2)}%</div>
+                                </div>
+                                <div style={{textAlign: 'center'}}>
+                                    <div style={{fontSize: '0.75rem', color: '#a78bfa'}}>Epoch</div>
+                                    <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#22d3ee'}}>{currentEpoch}</div>
+                                </div>
+                                <div style={{textAlign: 'center'}}>
+                                    <div style={{fontSize: '0.75rem', color: '#a78bfa'}}>Next Epoch</div>
+                                    <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#34d399'}}>{timeUntilNextEpoch}s</div>
+                                </div>
+                            </div>
+                            
                             <div style={{background: 'rgba(59,130,246,0.15)', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid rgba(59,130,246,0.3)'}}>
                                 <p style={{fontSize: '13px', marginBottom: '10px', color: '#e2e8f0'}}>
                                     <strong style={{color: '#93c5fd'}}>How it works:</strong>
                                 </p>
                                 <ul style={{fontSize: '12px', paddingLeft: '20px', margin: 0, color: '#cbd5e1'}}>
-                                    <li>Minimum stake: 1 ETH</li>
-                                    <li>You earn rewards over time based on your stake</li>
-                                    <li>Withdraw anytime to get your stake + rewards back</li>
+                                    <li>Minimum stake: 1 ETH | Unbonding: 60 seconds</li>
+                                    <li>Rewards decrease as more validators join (dilution)</li>
+                                    <li>Must attest each epoch or face small penalties</li>
+                                    <li>Misbehavior = slashing (5% stake penalty)</li>
                                 </ul>
                             </div>
+                            
+                            {/* Validator Stats (if staking) */}
+                            {parseFloat(myStake.amount) > 0 && (
+                                <div style={{
+                                    background: 'rgba(34, 211, 238, 0.1)',
+                                    padding: '15px',
+                                    borderRadius: '8px',
+                                    marginBottom: '15px',
+                                    border: '1px solid rgba(34, 211, 238, 0.3)'
+                                }}>
+                                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
+                                        <div>
+                                            <div style={{fontSize: '0.75rem', color: '#94a3b8'}}>Your Stake</div>
+                                            <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#a78bfa'}}>
+                                                {parseFloat(myStake.amount).toFixed(4)} ETH
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={{fontSize: '0.75rem', color: '#94a3b8'}}>Pending Rewards</div>
+                                            <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#34d399'}}>
+                                                +{parseFloat(myStake.reward).toFixed(6)} ETH
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={{fontSize: '0.75rem', color: '#94a3b8'}}>Blocks Proposed</div>
+                                            <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: '#8b5cf6'}}>
+                                                {myStake.blocksProposed}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div style={{fontSize: '0.75rem', color: '#94a3b8'}}>Slashes</div>
+                                            <div style={{fontSize: '1.1rem', fontWeight: 'bold', color: myStake.slashCount > 0 ? '#ef4444' : '#64748b'}}>
+                                                {myStake.slashCount}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Attestation Status */}
+                                    <div style={{
+                                        marginTop: '12px',
+                                        padding: '10px',
+                                        background: myStake.hasAttestedThisEpoch ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)',
+                                        borderRadius: '6px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center'
+                                    }}>
+                                        <span style={{fontSize: '0.85rem', color: myStake.hasAttestedThisEpoch ? '#34d399' : '#fbbf24'}}>
+                                            {myStake.hasAttestedThisEpoch ? '✅ Attested this epoch' : '⚠️ Attestation needed!'}
+                                        </span>
+                                        {!myStake.hasAttestedThisEpoch && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        setStatusMsg('📝 Submitting attestation...');
+                                                        const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+                                                        const tx = await contract.attest();
+                                                        await tx.wait();
+                                                        setStatusMsg('✅ Attestation submitted!');
+                                                        setTimeout(() => setStatusMsg(''), 3000);
+                                                    } catch (e) {
+                                                        setStatusMsg('❌ Attestation failed: ' + (e.reason || e.message));
+                                                    }
+                                                }}
+                                                style={{
+                                                    padding: '6px 12px',
+                                                    background: '#fbbf24',
+                                                    color: '#1e293b',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                    fontSize: '0.8rem'
+                                                }}
+                                            >
+                                                📝 Attest Now
+                                            </button>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Unbonding Timer */}
+                                    {withdrawalRequested && myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999 && (
+                                        <div style={{
+                                            marginTop: '12px',
+                                            padding: '10px',
+                                            background: 'rgba(59, 130, 246, 0.2)',
+                                            borderRadius: '6px',
+                                            textAlign: 'center'
+                                        }}>
+                                            <span style={{fontSize: '0.85rem', color: '#93c5fd'}}>
+                                                ⏳ Unbonding: {myStake.unbondingTime} seconds remaining
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             
                             {/* Stake Amount Input */}
                             <div style={{marginBottom: '1rem'}}>
@@ -4108,34 +4267,116 @@ function App() {
                                 >
                                     🏦 Stake {stakeAmount || '1'} ETH
                                 </button>
-                                <button 
-                                    onClick={async () => {
-                                        if (!posAddress || !wallet.signer) return setStatusMsg("Connect wallet first");
-                                        try {
-                                            setStatusMsg("Withdrawing stake...");
-                                            const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
-                                            const tx = await contract.withdraw();
-                                            await tx.wait();
-                                            setStatusMsg("✅ Withdrew stake + rewards!");
-                                            syncBlockchainData();
-                                            setTimeout(() => setStatusMsg(""), 3000);
-                                        } catch (e) {
-                                            setStatusMsg("Withdraw failed: " + (e.message || "Unknown error"));
-                                        }
-                                    }}
-                                    style={{
-                                        padding: '1rem',
-                                        background: '#64748b',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '0.5rem',
-                                        fontSize: '1rem',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    💸 Withdraw Stake + Rewards
-                                </button>
+                                {/* Two-Step Withdrawal Process */}
+                                {!withdrawalRequested ? (
+                                    <button 
+                                        onClick={async () => {
+                                            if (!posAddress || !wallet.signer) return setStatusMsg("Connect wallet first");
+                                            if (parseFloat(myStake.amount) === 0) return setStatusMsg("No stake to withdraw");
+                                            
+                                            // Check minimum stake duration
+                                            if (myStake.minStakeDuration > 0) {
+                                                return setStatusMsg(`⏳ Must wait ${myStake.minStakeDuration}s more (min stake duration)`);
+                                            }
+                                            
+                                            try {
+                                                setStatusMsg("📝 Requesting withdrawal (starts 60s unbonding)...");
+                                                const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+                                                const tx = await contract.requestWithdrawal();
+                                                await tx.wait();
+                                                setStatusMsg("✅ Withdrawal requested! Wait 60 seconds to complete.");
+                                                setWithdrawalRequested(true);
+                                                syncBlockchainData();
+                                            } catch (e) {
+                                                const reason = e.reason || e.message || "Unknown error";
+                                                setStatusMsg("❌ Request failed: " + reason);
+                                            }
+                                        }}
+                                        disabled={parseFloat(myStake.amount) === 0}
+                                        style={{
+                                            padding: '1rem',
+                                            background: parseFloat(myStake.amount) === 0 ? '#374151' : 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '0.5rem',
+                                            fontSize: '1rem',
+                                            fontWeight: 'bold',
+                                            cursor: parseFloat(myStake.amount) === 0 ? 'not-allowed' : 'pointer'
+                                        }}
+                                    >
+                                        ⏳ Request Withdrawal (Start Unbonding)
+                                    </button>
+                                ) : (
+                                    <div style={{display: 'flex', gap: '0.5rem'}}>
+                                        <button 
+                                            onClick={async () => {
+                                                if (!posAddress || !wallet.signer) return setStatusMsg("Connect wallet first");
+                                                
+                                                if (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) {
+                                                    return setStatusMsg(`⏳ Wait ${myStake.unbondingTime}s more to withdraw`);
+                                                }
+                                                
+                                                try {
+                                                    setStatusMsg("💸 Completing withdrawal...");
+                                                    const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+                                                    const tx = await contract.withdraw();
+                                                    await tx.wait();
+                                                    setStatusMsg("✅ Withdrew stake + rewards!");
+                                                    setWithdrawalRequested(false);
+                                                    syncBlockchainData();
+                                                    setTimeout(() => setStatusMsg(""), 3000);
+                                                } catch (e) {
+                                                    const reason = e.reason || e.message || "Unknown error";
+                                                    setStatusMsg("❌ Withdraw failed: " + reason);
+                                                }
+                                            }}
+                                            disabled={myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999}
+                                            style={{
+                                                flex: 1,
+                                                padding: '1rem',
+                                                background: (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) 
+                                                    ? '#374151' 
+                                                    : 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '0.5rem',
+                                                fontSize: '1rem',
+                                                fontWeight: 'bold',
+                                                cursor: (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) ? 'not-allowed' : 'pointer'
+                                            }}
+                                        >
+                                            {(myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) 
+                                                ? `⏳ ${myStake.unbondingTime}s remaining` 
+                                                : '💸 Complete Withdrawal'}
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    setStatusMsg("❌ Cancelling withdrawal...");
+                                                    const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+                                                    const tx = await contract.cancelWithdrawal();
+                                                    await tx.wait();
+                                                    setStatusMsg("✅ Withdrawal cancelled");
+                                                    setWithdrawalRequested(false);
+                                                    syncBlockchainData();
+                                                } catch (e) {
+                                                    setStatusMsg("❌ Cancel failed: " + (e.reason || e.message));
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '1rem',
+                                                background: '#64748b',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '0.5rem',
+                                                fontSize: '0.85rem',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                             
                             <div style={{marginTop: '15px', fontSize: '13px'}}>
@@ -4376,7 +4617,7 @@ function App() {
                         </div>
                     )}
                     {posAddress && (
-                        <InstructorDashboard 
+                        <InstructorView 
                             provider={provider}
                             posAddress={posAddress}
                             rpcUrl={rpcUrl}
