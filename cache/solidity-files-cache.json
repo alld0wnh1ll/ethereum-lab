@@ -72,8 +72,8 @@
       ]
     },
     "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\PoS.sol": {
-      "lastModificationDate": 1763577797261,
-      "contentHash": "6e3af7d70a79cfda65e409ab29c6c8ce",
+      "lastModificationDate": 1765394077791,
+      "contentHash": "61b1df9875c0466ee88812ee7439ef4b",
       "sourceName": "contracts/PoS.sol",
       "solcConfig": {
         "version": "0.8.19",
