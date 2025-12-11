@@ -44,6 +44,8 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
   const [lastProposedValidator, setLastProposedValidator] = useState(null);
+  const [actionLog, setActionLog] = useState([]);
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
   
   // Track last processed block for incremental updates
   const lastBlockRef = useRef(0);
@@ -161,23 +163,23 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
           Array.from(cache.addressMap.keys()).map(async (address) => {
             try {
               const [bal, stats] = await Promise.all([
-                provider.getBalance(address),
+              provider.getBalance(address),
                 posContract.getValidatorStats(address)
-              ]);
-              
-              const activity = cache.addressMap.get(address);
-              
-              return {
-                address,
-                balance: ethers.formatEther(bal),
+            ]);
+            
+            const activity = cache.addressMap.get(address);
+            
+            return {
+              address,
+              balance: ethers.formatEther(bal),
                 stake: ethers.formatEther(stats.stakeAmount),
                 reward: ethers.formatEther(stats.rewardAmount),
                 slashCount: Number(stats.slashes),
                 blocksProposed: Number(stats.blocks),
                 missedAttestations: Number(stats.attestations),
                 unbondingTime: Number(stats.unbondingTime),
-                ...activity
-              };
+              ...activity
+            };
             } catch (e) {
               console.error(`Error fetching stats for ${address}:`, e);
               return null;
@@ -228,7 +230,7 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
             address: e.args.proposer,
             blockNumber: Number(e.args.blockNumber),
             reward: ethers.formatEther(e.args.reward),
-            block: e.blockNumber
+            block: e.blockNumber 
           }))
         ];
         
@@ -274,48 +276,84 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
     setTimeout(() => setStatusMessage(''), duration);
   };
 
+  // Add to action log with timestamp
+  const logAction = (action, status, details = '') => {
+    const timestamp = new Date().toLocaleTimeString();
+    const entry = { timestamp, action, status, details };
+    console.log(`[Instructor ${timestamp}] ${action}: ${status}${details ? ' - ' + details : ''}`);
+    setActionLog(prev => [entry, ...prev.slice(0, 19)]); // Keep last 20 entries
+  };
+
   // ==================== INSTRUCTOR ACTIONS ====================
 
   // Slash a validator
   const handleSlash = async (address) => {
     if (!slashReason.trim()) {
       showStatus('⚠️ Please enter a reason for slashing');
+      logAction('Slash', '⚠️ BLOCKED', 'No reason provided');
       return;
     }
     
     if (!confirm(`Slash ${formatAddress(address)} for "${slashReason}"?\nThis will deduct 5% of their stake.`)) {
+      logAction('Slash', '❌ CANCELLED', `User cancelled for ${formatAddress(address)}`);
       return;
     }
+    
+    setIsActionInProgress(true);
+    logAction('Slash', '⏳ STARTED', `Target: ${formatAddress(address)}, Reason: ${slashReason}`);
     
     try {
       showStatus('⚡ Slashing validator...');
       const bankSigner = rpcClient.getBankSigner();
       if (!bankSigner) {
         showStatus('❌ Bank signer not initialized. Check RPC connection.');
+        logAction('Slash', '❌ FAILED', 'Bank signer not initialized');
         return;
       }
       const contract = new ethers.Contract(posAddress, PoSABI, bankSigner);
+      console.log('[Instructor] Sending slash transaction...');
       const tx = await contract.slash(address, slashReason);
-      await tx.wait();
+      console.log('[Instructor] Slash TX sent:', tx.hash);
+      logAction('Slash', '📤 TX SENT', `Hash: ${tx.hash.slice(0, 18)}...`);
+      
+      const receipt = await tx.wait();
+      console.log('[Instructor] Slash TX confirmed in block:', receipt.blockNumber);
+      
       showStatus(`✅ Slashed ${formatAddress(address)}!`);
+      logAction('Slash', '✅ SUCCESS', `${formatAddress(address)} slashed, block #${receipt.blockNumber}`);
       setSlashReason('');
       setSelectedStudent(null);
     } catch (e) {
       console.error('Slash error:', e);
       showStatus('❌ Slash failed: ' + (e.reason || e.message));
+      logAction('Slash', '❌ FAILED', e.reason || e.message);
+    } finally {
+      setIsActionInProgress(false);
     }
   };
 
   // Simulate block proposal
   const handleSimulateBlock = async () => {
+    setIsActionInProgress(true);
+    logAction('Block Proposal', '⏳ STARTED', 'Selecting validator...');
+    
     try {
       showStatus('🎲 Simulating block proposal...');
       const bankSigner = rpcClient.getBankSigner();
+      if (!bankSigner) {
+        showStatus('❌ Bank signer not initialized');
+        logAction('Block Proposal', '❌ FAILED', 'Bank signer not initialized');
+        return;
+      }
       const contract = new ethers.Contract(posAddress, PoSABI, bankSigner);
       
-      // Call the function and wait for the transaction
+      console.log('[Instructor] Sending block proposal transaction...');
       const tx = await contract.simulateBlockProposal();
+      console.log('[Instructor] Block proposal TX sent:', tx.hash);
+      logAction('Block Proposal', '📤 TX SENT', `Hash: ${tx.hash.slice(0, 18)}...`);
+      
       const receipt = await tx.wait();
+      console.log('[Instructor] Block proposal TX confirmed in block:', receipt.blockNumber);
       
       // Parse the event to get the selected validator
       const event = receipt.logs.find(log => {
@@ -328,66 +366,147 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
       if (event) {
         const parsed = contract.interface.parseLog(event);
         const proposer = parsed.args.proposer;
+        const reward = ethers.formatEther(parsed.args.reward);
         setLastProposedValidator(proposer);
         showStatus(`✅ Block proposed by ${formatAddress(proposer)}!`, 5000);
+        logAction('Block Proposal', '✅ SUCCESS', `Proposer: ${formatAddress(proposer)}, Reward: ${reward} ETH`);
+        console.log('[Instructor] Block proposed by:', proposer, 'Reward:', reward, 'ETH');
       } else {
         showStatus('✅ Block proposed!');
+        logAction('Block Proposal', '✅ SUCCESS', 'Block confirmed (no event found)');
       }
     } catch (e) {
       console.error('Block simulation error:', e);
       showStatus('❌ Simulation failed: ' + (e.reason || e.message));
+      logAction('Block Proposal', '❌ FAILED', e.reason || e.message);
+    } finally {
+      setIsActionInProgress(false);
     }
   };
 
   // Check missed attestations
   const handleCheckAttestations = async () => {
+    setIsActionInProgress(true);
+    logAction('Attestation Check', '⏳ STARTED', 'Scanning validators...');
+    
     try {
       showStatus('🔍 Checking missed attestations...');
       const bankSigner = rpcClient.getBankSigner();
+      if (!bankSigner) {
+        showStatus('❌ Bank signer not initialized');
+        logAction('Attestation Check', '❌ FAILED', 'Bank signer not initialized');
+        return;
+      }
       const contract = new ethers.Contract(posAddress, PoSABI, bankSigner);
+      
+      console.log('[Instructor] Sending attestation check transaction...');
       const tx = await contract.checkMissedAttestations();
-      await tx.wait();
+      console.log('[Instructor] Attestation check TX sent:', tx.hash);
+      logAction('Attestation Check', '📤 TX SENT', `Hash: ${tx.hash.slice(0, 18)}...`);
+      
+      const receipt = await tx.wait();
+      console.log('[Instructor] Attestation check TX confirmed in block:', receipt.blockNumber);
+      
+      // Count penalty events
+      const penaltyEvents = receipt.logs.filter(log => {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          return parsed.name === 'AttestationMissed';
+        } catch { return false; }
+      });
+      
       showStatus('✅ Attestation check complete!');
+      logAction('Attestation Check', '✅ SUCCESS', `${penaltyEvents.length} validators penalized`);
+      console.log('[Instructor] Attestation check complete,', penaltyEvents.length, 'validators penalized');
     } catch (e) {
       console.error('Attestation check error:', e);
       showStatus('❌ Check failed: ' + (e.reason || e.message));
+      logAction('Attestation Check', '❌ FAILED', e.reason || e.message);
+    } finally {
+      setIsActionInProgress(false);
     }
   };
 
   // Advance epoch manually
   const handleAdvanceEpoch = async () => {
+    setIsActionInProgress(true);
+    logAction('Advance Epoch', '⏳ STARTED', `Current epoch: ${currentEpoch}`);
+    
     try {
       showStatus('⏰ Advancing epoch...');
       const bankSigner = rpcClient.getBankSigner();
+      if (!bankSigner) {
+        showStatus('❌ Bank signer not initialized');
+        logAction('Advance Epoch', '❌ FAILED', 'Bank signer not initialized');
+        return;
+      }
       const contract = new ethers.Contract(posAddress, PoSABI, bankSigner);
+      
+      console.log('[Instructor] Sending advance epoch transaction...');
       const tx = await contract.advanceEpoch();
-      await tx.wait();
+      console.log('[Instructor] Advance epoch TX sent:', tx.hash);
+      logAction('Advance Epoch', '📤 TX SENT', `Hash: ${tx.hash.slice(0, 18)}...`);
+      
+      const receipt = await tx.wait();
+      console.log('[Instructor] Advance epoch TX confirmed in block:', receipt.blockNumber);
+      
       showStatus('✅ Epoch advanced!');
+      logAction('Advance Epoch', '✅ SUCCESS', `Now epoch ${currentEpoch + 1}`);
     } catch (e) {
       console.error('Epoch advance error:', e);
       showStatus('❌ Advance failed: ' + (e.reason || e.message));
+      logAction('Advance Epoch', '❌ FAILED', e.reason || e.message);
+    } finally {
+      setIsActionInProgress(false);
     }
   };
 
   // Send ETH to all students
   const resetStudentBalances = async () => {
-    if (!confirm(`Send 5 ETH to all ${students.length} students?`)) return;
+    if (students.length === 0) {
+      showStatus('⚠️ No students to fund');
+      logAction('Fund Students', '⚠️ BLOCKED', 'No students found');
+      return;
+    }
+    
+    if (!confirm(`Send 5 ETH to all ${students.length} students?`)) {
+      logAction('Fund Students', '❌ CANCELLED', 'User cancelled');
+      return;
+    }
+    
+    setIsActionInProgress(true);
+    logAction('Fund Students', '⏳ STARTED', `Funding ${students.length} students...`);
     
     try {
       showStatus('💰 Sending ETH to students...');
       const bankSigner = rpcClient.getBankSigner();
+      if (!bankSigner) {
+        showStatus('❌ Bank signer not initialized');
+        logAction('Fund Students', '❌ FAILED', 'Bank signer not initialized');
+        return;
+      }
       
+      let funded = 0;
       for (const student of students) {
+        console.log(`[Instructor] Sending 5 ETH to ${formatAddress(student.address)}...`);
         const tx = await bankSigner.sendTransaction({
           to: student.address,
           value: ethers.parseEther("5.0")
         });
         await tx.wait();
+        funded++;
+        showStatus(`💰 Funded ${funded}/${students.length} students...`);
       }
+      
       showStatus(`✅ Sent 5 ETH to ${students.length} students!`);
+      logAction('Fund Students', '✅ SUCCESS', `${funded} students received 5 ETH each`);
+      console.log('[Instructor] Successfully funded', funded, 'students');
     } catch (e) {
       console.error("Reset error:", e);
       showStatus('❌ Failed: ' + e.message);
+      logAction('Fund Students', '❌ FAILED', e.message);
+    } finally {
+      setIsActionInProgress(false);
     }
   };
 
@@ -508,6 +627,82 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
         <p style={{fontSize: '12px', color: '#475569'}}>
           <strong>Note:</strong> Slashing and attestation penalties affect validator stakes. Block proposals demonstrate weighted random selection.
         </p>
+        
+        {/* Action Log Panel */}
+        <div style={{
+          marginTop: '15px',
+          background: '#1e293b',
+          borderRadius: '8px',
+          border: '1px solid #334155',
+          maxHeight: '200px',
+          overflowY: 'auto'
+        }}>
+          <div style={{
+            padding: '8px 12px',
+            background: '#334155',
+            borderBottom: '1px solid #475569',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{fontWeight: 'bold', fontSize: '0.85rem', color: '#e2e8f0'}}>
+              📋 Action Log {isActionInProgress && <span style={{color: '#fbbf24', marginLeft: '8px'}}>⏳ Processing...</span>}
+            </span>
+            <button 
+              onClick={() => setActionLog([])}
+              style={{
+                padding: '4px 8px',
+                background: '#475569',
+                border: 'none',
+                borderRadius: '4px',
+                color: '#94a3b8',
+                fontSize: '0.7rem',
+                cursor: 'pointer'
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <div style={{padding: '8px'}}>
+            {actionLog.length === 0 ? (
+              <div style={{color: '#64748b', fontSize: '0.8rem', textAlign: 'center', padding: '10px'}}>
+                No actions yet. Click a button above to see the log.
+              </div>
+            ) : (
+              actionLog.map((entry, idx) => (
+                <div 
+                  key={idx} 
+                  style={{
+                    padding: '6px 8px',
+                    borderBottom: idx < actionLog.length - 1 ? '1px solid #334155' : 'none',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    gap: '10px',
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <span style={{color: '#64748b', minWidth: '70px', fontFamily: 'monospace'}}>
+                    {entry.timestamp}
+                  </span>
+                  <span style={{
+                    color: entry.status.includes('SUCCESS') ? '#34d399' : 
+                           entry.status.includes('FAILED') ? '#ef4444' : 
+                           entry.status.includes('STARTED') ? '#fbbf24' :
+                           entry.status.includes('TX SENT') ? '#22d3ee' : '#94a3b8',
+                    fontWeight: 'bold',
+                    minWidth: '80px'
+                  }}>
+                    {entry.status}
+                  </span>
+                  <span style={{color: '#e2e8f0', flex: 1}}>
+                    <strong>{entry.action}</strong>
+                    {entry.details && <span style={{color: '#94a3b8', marginLeft: '8px'}}>{entry.details}</span>}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
       
       {/* Network Stats */}
