@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ethers } from 'ethers'
 import { connectWallet, checkNodeStatus, getGuestWallet } from './web3'
 import PoSABI from './PoS.json'
 import { InstructorView } from './views/InstructorView'
+import { blockchainSync } from './lib/BlockchainSync'
 import './index.css'
 
 // Hardhat default private key for Account #0 (The "Bank")
@@ -59,7 +60,10 @@ const CONCEPT_CARDS = [
             "Public address (0x + 40 hex chars) → your identity on Ethereum, derived from public key",
             "Never share your private key—anyone with it controls your funds",
             "Addresses start with '0x' and use hexadecimal (0-9, a-f)"
-        ]
+        ],
+        // VIDEO PLACEHOLDER: Add YouTube URL explaining crypto wallets
+        // Example: video: "https://www.youtube.com/embed/VIDEO_ID"
+        video: "https://www.youtube.com/embed/qLZ1IoezucE"
     },
     {
         title: "⛽ Gas & Transaction Fees",
@@ -69,7 +73,9 @@ const CONCEPT_CARDS = [
             "Base fee: Burned (destroyed) ETH—reduces supply, can cause deflation",
             "Tip (priority fee): Goes to validator—higher tip = faster inclusion",
             "Simple ETH transfer: ~21,000 gas | Complex smart contract: 100k+ gas"
-        ]
+        ],
+        // VIDEO PLACEHOLDER: Add YouTube URL explaining gas fees
+        video: "https://www.youtube.com/embed/3ehaSqwUZ0s"
     },
     {
         title: "🧱 Blocks & Finality",
@@ -79,7 +85,9 @@ const CONCEPT_CARDS = [
             "Block number (height) = total blocks since genesis (July 30, 2015)",
             "Finality: After ~15 minutes (64 blocks), blocks are irreversible",
             "Each block has a proposer (validator) who earns fees + rewards"
-        ]
+        ],
+        // VIDEO PLACEHOLDER: Add YouTube URL explaining blockchain blocks
+        video: "https://www.youtube.com/embed/eq1oRGLEG3Y"
     },
     {
         title: "🤝 Proof-of-Stake Consensus",
@@ -92,7 +100,9 @@ const CONCEPT_CARDS = [
             "Replaced Proof-of-Work in Sept 2022, cutting energy use by 99.95%"
         ],
         diagram: true,
-        fullWidth: true
+        fullWidth: true,
+        // VIDEO PLACEHOLDER: Add YouTube URL explaining Proof of Stake (PRIORITY - core concept)
+        video: null
     },
     {
         title: "💎 Ether (ETH)",
@@ -102,7 +112,9 @@ const CONCEPT_CARDS = [
             "Total supply: ~120 million ETH (no hard cap, but issuance is low)",
             "Uses: Pay gas fees, stake to become validator, collateral in DeFi",
             "Units: 1 ETH = 1,000,000,000 Gwei = 10¹⁸ Wei"
-        ]
+        ],
+        // VIDEO PLACEHOLDER: Add YouTube URL explaining what ETH is
+        video: null
     },
     {
         title: "📜 Smart Contracts",
@@ -112,7 +124,9 @@ const CONCEPT_CARDS = [
             "Immutable: Once deployed, code cannot be changed",
             "Powers DeFi, NFTs, DAOs, games, and more",
             "Our lab uses a PoS simulator contract for staking and chat"
-        ]
+        ],
+        // VIDEO PLACEHOLDER: Add YouTube URL explaining smart contracts
+        video: null
     }
 ]
 
@@ -129,6 +143,9 @@ const EXPLORE_MISSIONS = [
             "Honest validators earn rewards; dishonest ones get slashed"
         ],
         miniLab: 'staking-rewards',
+        // VIDEO PLACEHOLDER: Add YouTube embed URL for staking explanation (PRIORITY)
+        // Example: video: "https://www.youtube.com/embed/VIDEO_ID"
+        video: null,
         quiz: {
             question: "Why must validators stake ETH?",
             options: [
@@ -151,7 +168,10 @@ const EXPLORE_MISSIONS = [
             "Run honest software—no cheating or double-signing",
             "Earn transaction fees + block rewards for good work"
         ],
+        video: "https://www.youtube.com/embed/b9mNgGqxhJ8",
         miniLab: 'validator-probability',
+        // VIDEO PLACEHOLDER: Add YouTube embed URL for validator duties explanation
+        
         quiz: {
             question: "What happens if a validator goes offline?",
             options: [
@@ -175,6 +195,8 @@ const EXPLORE_MISSIONS = [
             "Slashed validators are forcibly ejected from the network"
         ],
         miniLab: 'slashing-penalty',
+        // VIDEO PLACEHOLDER: Add YouTube embed URL for slashing explanation (PRIORITY)
+        video: null,
         quiz: {
             question: "What is slashing designed to prevent?",
             options: [
@@ -197,6 +219,8 @@ const EXPLORE_MISSIONS = [
             "Governance: Staked tokens often give voting rights in DAOs",
             "Risk: Smart contract bugs or protocol failures"
         ],
+        // VIDEO PLACEHOLDER: Add YouTube embed URL for DeFi/liquid staking
+        video: "https://www.youtube.com/embed/e9Eg0CmboFU",
         quiz: {
             question: "What is 'liquid staking'?",
             options: [
@@ -219,6 +243,8 @@ const EXPLORE_MISSIONS = [
             "MEV (Maximal Extractable Value): Advanced validators earn more",
             "Costs: Hardware, electricity, internet, downtime risks"
         ],
+        // VIDEO PLACEHOLDER: Add YouTube embed URL for staking economics
+        video: "https://www.youtube.com/embed/ja_Irb5LS1k",
         quiz: {
             question: "Why would someone run a validator?",
             options: [
@@ -233,6 +259,7 @@ const EXPLORE_MISSIONS = [
     {
         title: "🎯 Real-World Scenario: Attack Cost",
         category: "Network Security",
+        
         action: "Calculate how expensive it is to attack Ethereum",
         details: [
             "To control 51% of validators, need 51% of all staked ETH",
@@ -243,6 +270,9 @@ const EXPLORE_MISSIONS = [
             "Compare to Bitcoin: Rent mining hardware temporarily for attack"
         ],
         miniLab: 'attack-cost',
+        video: "https://www.youtube.com/embed/8jOacOeGNSE",
+        // VIDEO PLACEHOLDER: Add YouTube embed URL for 51% attack explanation
+        
         quiz: {
             question: "Why is PoS more secure than PoW against attacks?",
             options: [
@@ -257,6 +287,7 @@ const EXPLORE_MISSIONS = [
     {
         title: "🔄 Observe the Chain",
         category: "Hands-On",
+        video: "https://www.youtube.com/embed/SSo_EIwHSd4",
         action: "Watch how blocks are linked together in a real blockchain.",
         details: [
             "Ethereum produces a block every ~12 seconds",
@@ -2590,6 +2621,46 @@ function ExploreView({ missions, exploreProgress, setExploreProgress, onBack, on
                                         </div>
                                     )}
                                     
+                                    {/* VIDEO EMBED - Shows when video URL is provided */}
+                                    {mission.video && (
+                                        <div style={{
+                                            marginBottom: '2rem',
+                                            borderRadius: '0.75rem',
+                                            overflow: 'hidden',
+                                            background: '#0f172a',
+                                            border: '2px solid #10b981'
+                                        }}>
+                                            <div style={{
+                                                padding: '0.75rem 1rem',
+                                                background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                color: 'white',
+                                                fontWeight: 'bold',
+                                                fontSize: '0.9rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px'
+                                            }}>
+                                                🎬 Watch: {mission.title}
+                                            </div>
+                                            <div style={{position: 'relative', paddingBottom: '56.25%', height: 0}}>
+                                                <iframe
+                                                    src={mission.video}
+                                                    title={`Video: ${mission.title}`}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        border: 'none'
+                                                    }}
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     {mission.details && (
                                         <ul style={{
                                             listStyle: 'none',
@@ -3103,6 +3174,7 @@ function App() {
   const isInstructor = urlParams.get('mode') === 'instructor'
   
   const [view, setView] = useState(isInstructor ? 'instructor' : 'intro'); // intro -> concepts -> explore -> learn -> sim -> live -> cli | instructor
+  const [appMode, setAppMode] = useState('learning'); // 'learning' | 'live' | 'cli' | 'instructor' - top-level mode separation
   
   // --- LIVE MODE STATE ---
   // Auto-detect if accessing from remote (not localhost)
@@ -3190,6 +3262,10 @@ function App() {
   const [timeUntilNextEpoch, setTimeUntilNextEpoch] = useState(0)
   const [currentAPY, setCurrentAPY] = useState(5)
   const [withdrawalRequested, setWithdrawalRequested] = useState(false)
+  
+  // Sync status indicator
+  const [lastSyncTime, setLastSyncTime] = useState(Date.now())
+  const lastSyncRef = useRef(Date.now())
 
   const saveTrail = (next) => {
     setTrail(next)
@@ -3364,6 +3440,10 @@ function App() {
         setCurrentAPY(Number(apy) / 100) // Convert from 500 to 5.00
         setWithdrawalRequested(Number(unbonding) > 0)
         
+        // Update sync time indicator
+        lastSyncRef.current = Date.now()
+        setLastSyncTime(Date.now())
+        
       } catch (e) {
         console.error("Stake info error:", e)
       }
@@ -3374,24 +3454,24 @@ function App() {
     fetchTxHistory()
     fetchStakeInfo()
     
-    // Listen for new blocks for real-time updates
-    const blockListener = (blockNumber) => {
-      updateBalance()
-      fetchTxHistory()
-      fetchStakeInfo()
-    }
-    provider.on("block", blockListener)
-    
-    // Poll every 3 seconds as backup
+    // Fast polling for responsive updates (block listeners don't work over network)
+    // Use 1-second interval for balance/stake, stagger other updates
+    let pollCount = 0;
     const interval = setInterval(() => {
-      updateBalance()
-      fetchTxHistory()
-      fetchStakeInfo()
-    }, 3000)
+      pollCount++;
+      
+      // Balance and stake info every 1 second
+      updateBalance();
+      fetchStakeInfo();
+      
+      // Transaction history every 3 seconds (less critical)
+      if (pollCount % 3 === 0) {
+        fetchTxHistory();
+      }
+    }, 1000);
     
     return () => {
-      provider.off("block", blockListener)
-      clearInterval(interval)
+      clearInterval(interval);
     }
   }, [provider, wallet.address, view, posAddress])
 
@@ -3472,50 +3552,89 @@ function App() {
         const stakeEvents = await contract.queryFilter("Staked", 0)
         const msgEvents = await contract.queryFilter("NewMessage", 0)
         const allAddrs = [...stakeEvents.map(e=>e.args[0]), ...msgEvents.map(e=>e.args[0])]
-        setValidators([...new Set(allAddrs)]) // Unique list
+        const uniqueAddrs = [...new Set(allAddrs)]
+        
+        // Only update if we have addresses (don't replace with empty)
+        if (uniqueAddrs.length > 0) {
+          setValidators(prev => {
+            const combined = [...new Set([...prev, ...uniqueAddrs])];
+            return combined;
+          });
+        }
 
-      } catch (e) {}
+      } catch (e) {
+        console.warn("syncBlockchainData error:", e);
+      }
       setIsSyncing(false)
   }
 
-   const sendChatMessage = async () => {
-      if(!chatInput.trim()) return
-      if(!posAddress || posAddress.length !== 42) return setStatusMsg("Invalid Contract Address")
+   // Send chat message - accepts optional direct message to avoid state race conditions
+   const sendChatMessage = async (directMessage = null) => {
+      // If directMessage is an Event object (from onClick), ignore it and use chatInput
+      const messageToSend = (typeof directMessage === 'string') ? directMessage : chatInput;
+      if(!messageToSend?.trim()) {
+          console.log("[Chat] No message to send");
+          return false;
+      }
+      if(!posAddress || posAddress.length !== 42) {
+          setStatusMsg("❌ Invalid Contract Address");
+          return false;
+      }
+      if(!rpcUrl) {
+          setStatusMsg("❌ No RPC URL configured");
+          return false;
+      }
+      if(!wallet.signer) {
+          setStatusMsg("❌ Wallet not ready. Please wait...");
+          return false;
+      }
+      
       try {
-          // Use bank account to pay for gas if user has no ETH
-          let signer = wallet.signer
-          if (wallet.balance === '0' || parseFloat(wallet.balance) < 0.01) {
-              // User has no ETH, use bank account to send message on their behalf
-              const bankProvider = new ethers.JsonRpcProvider(rpcUrl)
-              const bankWallet = new ethers.Wallet(BANK_PRIVATE_KEY, bankProvider)
-              
-              // Create contract with bank wallet but encode user's address in message
-              const contract = new ethers.Contract(posAddress, PoSABI, bankWallet)
-              const msgWithSender = `[${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}] ${chatInput}`
-              const tx = await contract.sendMessage(msgWithSender)
-              setChatInput("")
-              setStatusMsg("Sending message...")
-              await tx.wait()
-          } else {
-              // User has ETH, send normally
-              const contract = new ethers.Contract(posAddress, PoSABI, signer)
-              const tx = await contract.sendMessage(chatInput)
-              setChatInput("")
-              setStatusMsg("Sending message...")
-              await tx.wait()
+          setStatusMsg("📤 Sending message...");
+          
+          // Use the user's wallet to send the message (so sender is correctly recorded)
+          const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+          
+          console.log("[Chat] Sending as:", wallet.address, "Message:", messageToSend);
+          const tx = await contract.sendMessage(messageToSend);
+          
+          // Clear input if we used the chatInput state
+          if (!directMessage) {
+              setChatInput("");
           }
-          syncBlockchainData()
-          setStatusMsg("")
+          
+          setStatusMsg("⏳ Confirming...");
+          await tx.wait();
+          
+          console.log("[Chat] Message confirmed");
+          setStatusMsg("✅ Message sent!");
+          
+          // Trigger sync to update classmates list
+          syncBlockchainData();
+          blockchainSync.forceRefresh();
+          
+          setTimeout(() => setStatusMsg(""), 2000);
+          return true;
+          
       } catch (err) { 
-          console.error("Chat error:", err)
-          setStatusMsg("Chat failed: " + (err.message || "Unknown error"))
+          console.error("[Chat] Error:", err);
+          const reason = err.reason || err.message || "Unknown error";
+          setStatusMsg("❌ Chat failed: " + reason);
+          return false;
       }
   }
 
-  // "I am Here" Button
+  // "I am Here" Button - joins the class by sending a message
   const broadcastPresence = async () => {
-      setChatInput("👋 Joined the class!")
-      await sendChatMessage()
+      // Pass message directly to avoid React state race condition
+      const success = await sendChatMessage("👋 Joined the class!");
+      if (success) {
+          // Force immediate refresh of validators list
+          setTimeout(() => {
+              syncBlockchainData();
+              blockchainSync.forceRefresh();
+          }, 500);
+      }
   }
 
   const copyAddress = (addr) => {
@@ -3527,78 +3646,449 @@ function App() {
       const minutes = Math.floor((Date.now() - sessionStart) / 60000)
       return minutes
   }
-
+  
+  // Refresh sync indicator every second
+  const [, forceUpdate] = useState(0);
   useEffect(() => {
-    if(view === 'live' && posAddress.length === 42) {
-        syncBlockchainData();
-        const i = setInterval(syncBlockchainData, 2000);
-        return () => clearInterval(i);
+    if (view === 'live') {
+      const timer = setInterval(() => forceUpdate(n => n + 1), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [view]);
+
+  // Enhanced blockchain sync using centralized service
+  useEffect(() => {
+    if (view === 'live' && posAddress.length === 42 && provider) {
+      // Initialize the sync service
+      blockchainSync.init(provider, posAddress);
+      
+      // Subscribe to updates from centralized sync
+      const unsubscribe = blockchainSync.subscribe((data) => {
+        if (data.error) {
+          console.warn('[App] Sync error:', data.error);
+          return;
+        }
+        
+        // Update messages (only if we have messages)
+        if (data.messages && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+        
+        // Update validators list (merge with existing, don't replace with empty)
+        if (data.validators && data.validators.length > 0) {
+          setValidators(prev => {
+            // Merge: keep existing + add new ones
+            const combined = [...new Set([...prev, ...data.validators])];
+            return combined;
+          });
+        }
+        
+        // Update network stats
+        if (data.network) {
+          setCurrentEpoch(data.network.currentEpoch);
+          setTimeUntilNextEpoch(data.network.timeUntilNextEpoch);
+          setCurrentAPY(data.network.currentAPY);
+        }
+        
+        console.log('[App] Sync update - Block:', data.blockNumber, 'Validators:', data.validators?.length || 0);
+      });
+      
+      return () => {
+        unsubscribe();
+      };
     }
   }, [posAddress, provider, view])
 
+
+  // Compute current mode from view
+  const currentMode = ['intro', 'concepts', 'explore', 'learn', 'sim'].includes(view) 
+    ? 'learning' 
+    : view === 'live' 
+      ? 'live' 
+      : view === 'cli' 
+        ? 'cli' 
+        : 'instructor';
 
   return (
     <div className="app-layout">
         {/* NAVIGATION SIDEBAR */}
         <aside className="nav-sidebar">
             <h1>Web3 Lab</h1>
-            <nav>
-                <div className="learning-roadmap">
-                    <button className={`roadmap-step ${view === 'intro' ? 'active' : ''} ${trail.intro ? 'done' : ''}`} onClick={() => requestView('intro')}>
-                        <span>1</span> Orientation
+            
+            {/* ============= MODE SWITCHER (TOP-LEVEL TABS) ============= */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                marginBottom: '1.5rem',
+                background: 'rgba(0,0,0,0.3)',
+                padding: '8px',
+                borderRadius: '12px'
+            }}>
+                <button 
+                    onClick={() => { setView('intro'); }}
+                    style={{
+                        padding: '12px 8px',
+                        background: currentMode === 'learning' ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' : 'transparent',
+                        border: currentMode === 'learning' ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: currentMode === 'learning' ? 'white' : '#94a3b8',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: currentMode === 'learning' ? 'bold' : 'normal',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span style={{fontSize: '1.2rem'}}>📚</span>
+                    Learn
+                </button>
+                <button 
+                    onClick={() => { setView('live'); }}
+                    style={{
+                        padding: '12px 8px',
+                        background: currentMode === 'live' ? 'linear-gradient(135deg, #10b981 0%, #34d399 100%)' : 'transparent',
+                        border: currentMode === 'live' ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: currentMode === 'live' ? 'white' : '#94a3b8',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: currentMode === 'live' ? 'bold' : 'normal',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span style={{fontSize: '1.2rem'}}>🌐</span>
+                    Live
+                </button>
+                <button 
+                    onClick={() => { setView('cli'); }}
+                    style={{
+                        padding: '12px 8px',
+                        background: currentMode === 'cli' ? 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)' : 'transparent',
+                        border: currentMode === 'cli' ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        color: currentMode === 'cli' ? '#1e293b' : '#94a3b8',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: currentMode === 'cli' ? 'bold' : 'normal',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    <span style={{fontSize: '1.2rem'}}>💻</span>
+                    CLI
+                </button>
+                {isInstructor && (
+                    <button 
+                        onClick={() => { setView('instructor'); }}
+                        style={{
+                            padding: '12px 8px',
+                            background: currentMode === 'instructor' ? 'linear-gradient(135deg, #ec4899 0%, #f472b6 100%)' : 'transparent',
+                            border: currentMode === 'instructor' ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            color: currentMode === 'instructor' ? 'white' : '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                            fontWeight: currentMode === 'instructor' ? 'bold' : 'normal',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <span style={{fontSize: '1.2rem'}}>🎓</span>
+                        Instructor
                     </button>
-                    <button className={`roadmap-step ${view === 'concepts' ? 'active' : ''} ${trail.concepts ? 'done' : ''} ${!unlocks.concepts ? 'locked' : ''}`} onClick={() => requestView('concepts')}>
-                        <span>2</span> Basics
-                    </button>
-                    <button className={`roadmap-step ${view === 'explore' ? 'active' : ''} ${trail.explore ? 'done' : ''} ${!unlocks.explore ? 'locked' : ''}`} onClick={() => requestView('explore')}>
-                        <span>3</span> Explore
-                    </button>
-                    <button className={`roadmap-step ${view === 'learn' ? 'active' : ''} ${!unlocks.learn ? 'locked' : ''}`} onClick={() => requestView('learn')}>
-                        <span>4</span> Learn
-                    </button>
-                    <button className={`roadmap-step ${view === 'sim' ? 'active' : ''} ${!unlocks.sim ? 'locked' : ''}`} onClick={() => requestView('sim')}>
-                        <span>5</span> Practice
-                    </button>
-                    <button className={`roadmap-step ${view === 'live' ? 'active' : ''} ${!unlocks.live ? 'locked' : ''}`} onClick={() => requestView('live')}>
-                        <span>6</span> Live Network
-                    </button>
-                    <button className={`roadmap-step ${view === 'cli' ? 'active' : ''} ${!unlocks.cli ? 'locked' : ''}`} onClick={() => requestView('cli')}>
-                        <span>7</span> CLI Labs
-                    </button>
-                </div>
-                {navHint && <p className="nav-hint">{navHint}</p>}
-                {isInstructor ? (
-                    <button className={view === 'instructor' ? 'active' : ''} onClick={() => requestView('instructor')}>
-                        🎓 Instructor Dashboard
-                    </button>
-                ) : (
-                    <small className="nav-caption">Instructor dashboard available at <code>?mode=instructor</code></small>
                 )}
-            </nav>
-
-            {view === 'live' && (
-                <div className="roster-panel">
-                    <h3>👥 Classmates ({validators.length})</h3>
-                    <p className="roster-hint">Click to copy/send</p>
-                    <ul>
-                        {validators.map(v => (
-                            <li key={v} onClick={() => copyAddress(v)} title="Click to Copy Address">
-                                <div className="avatar" style={{background: `#${v.slice(2,8)}`}}></div>
-                                <div className="roster-item-content">
-                                    <span>{v.slice(0,6)}...{v.slice(-4)}</span>
-                                    {v === wallet.address && <span className="you-badge">(You)</span>}
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                    {!validators.includes(wallet.address) && wallet.address && (
-                        <button className="secondary-btn small-btn" onClick={broadcastPresence}>
-                            👋 Join Class List
-                        </button>
-                    )}
-                    <div className="session-info">
-                        <small>Your Session: {getSessionAge()} min</small>
+            </div>
+            
+            {/* ============= LEARNING MODE SIDEBAR ============= */}
+            {currentMode === 'learning' && (
+                <nav>
+                    <div style={{
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginBottom: '0.75rem',
+                        paddingLeft: '0.5rem'
+                    }}>
+                        Learning Path
                     </div>
+                    <div className="learning-roadmap">
+                        <button className={`roadmap-step ${view === 'intro' ? 'active' : ''} ${trail.intro ? 'done' : ''}`} onClick={() => requestView('intro')}>
+                            <span>1</span> Orientation
+                        </button>
+                        <button className={`roadmap-step ${view === 'concepts' ? 'active' : ''} ${trail.concepts ? 'done' : ''} ${!unlocks.concepts ? 'locked' : ''}`} onClick={() => requestView('concepts')}>
+                            <span>2</span> Basics
+                        </button>
+                        <button className={`roadmap-step ${view === 'explore' ? 'active' : ''} ${trail.explore ? 'done' : ''} ${!unlocks.explore ? 'locked' : ''}`} onClick={() => requestView('explore')}>
+                            <span>3</span> Explore
+                        </button>
+                        <button className={`roadmap-step ${view === 'learn' ? 'active' : ''} ${!unlocks.learn ? 'locked' : ''}`} onClick={() => requestView('learn')}>
+                            <span>4</span> Learn
+                        </button>
+                        <button className={`roadmap-step ${view === 'sim' ? 'active' : ''} ${!unlocks.sim ? 'locked' : ''}`} onClick={() => requestView('sim')}>
+                            <span>5</span> Practice
+                        </button>
+                    </div>
+                    {navHint && <p className="nav-hint">{navHint}</p>}
+                    
+                    <div style={{
+                        marginTop: '1.5rem',
+                        padding: '1rem',
+                        background: 'rgba(59,130,246,0.1)',
+                        borderRadius: '0.75rem',
+                        border: '1px solid rgba(59,130,246,0.3)'
+                    }}>
+                        <div style={{fontSize: '0.8rem', color: '#93c5fd', marginBottom: '0.5rem'}}>
+                            💡 Ready for hands-on?
+                        </div>
+                        <button 
+                            onClick={() => setView('live')}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                border: 'none',
+                                borderRadius: '0.5rem',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem'
+                            }}
+                        >
+                            🌐 Go to Live Network →
+                        </button>
+                    </div>
+                </nav>
+            )}
+            
+            {/* ============= LIVE NETWORK MODE SIDEBAR ============= */}
+            {currentMode === 'live' && (
+                <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                    <div style={{
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginBottom: '0.75rem',
+                        paddingLeft: '0.5rem'
+                    }}>
+                        Live Network
+                    </div>
+                    
+                    {/* Connection Status Mini */}
+                    <div style={{
+                        padding: '0.75rem',
+                        background: nodeStatus.connected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        borderRadius: '0.5rem',
+                        marginBottom: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: nodeStatus.connected ? '#10b981' : '#ef4444',
+                            animation: nodeStatus.connected ? 'pulse 2s infinite' : 'none'
+                        }}></div>
+                        <span style={{
+                            fontSize: '0.8rem',
+                            color: nodeStatus.connected ? '#34d399' : '#fca5a5',
+                            fontWeight: 'bold'
+                        }}>
+                            {nodeStatus.connected ? `Block #${nodeStatus.blockNumber}` : 'Disconnected'}
+                        </span>
+                    </div>
+                    
+                    {/* Classmates Roster */}
+                    <div className="roster-panel" style={{flex: 1}}>
+                        <h3>👥 Classmates ({validators.filter(v => v && typeof v === 'string').length})</h3>
+                        <p className="roster-hint">Click to copy/send</p>
+                        <ul>
+                            {validators.filter(v => v && typeof v === 'string').map(v => (
+                                <li key={v} onClick={() => copyAddress(v)} title="Click to Copy Address">
+                                    <div className="avatar" style={{background: `#${v.slice(2,8)}`}}></div>
+                                    <div className="roster-item-content">
+                                        <span>{v.slice(0,6)}...{v.slice(-4)}</span>
+                                        {v === wallet.address && <span className="you-badge">(You)</span>}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                        {!validators.includes(wallet.address) && wallet.address && (
+                            <button 
+                                className="secondary-btn small-btn" 
+                                onClick={broadcastPresence}
+                                disabled={statusMsg.includes("Sending") || statusMsg.includes("Confirming")}
+                                style={{
+                                    opacity: (statusMsg.includes("Sending") || statusMsg.includes("Confirming")) ? 0.6 : 1,
+                                    cursor: (statusMsg.includes("Sending") || statusMsg.includes("Confirming")) ? 'wait' : 'pointer'
+                                }}
+                            >
+                                {statusMsg.includes("Sending") || statusMsg.includes("Confirming") 
+                                    ? "⏳ Joining..." 
+                                    : "👋 Join Class List"}
+                            </button>
+                        )}
+                        {validators.includes(wallet.address) && (
+                            <div style={{
+                                padding: '0.5rem',
+                                background: 'rgba(34, 197, 94, 0.2)',
+                                borderRadius: '0.5rem',
+                                fontSize: '0.8rem',
+                                color: '#22c55e',
+                                textAlign: 'center'
+                            }}>
+                                ✅ You're in the class!
+                            </div>
+                        )}
+                        <div className="session-info">
+                            <small>Your Session: {getSessionAge()} min</small>
+                        </div>
+                    </div>
+                    
+                    {/* Back to Learning Link */}
+                    <div style={{
+                        marginTop: 'auto',
+                        padding: '1rem',
+                        background: 'rgba(139,92,246,0.1)',
+                        borderRadius: '0.75rem',
+                        border: '1px solid rgba(139,92,246,0.3)'
+                    }}>
+                        <div style={{fontSize: '0.8rem', color: '#a78bfa', marginBottom: '0.5rem'}}>
+                            📚 Need to review concepts?
+                        </div>
+                        <button 
+                            onClick={() => setView('explore')}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'transparent',
+                                border: '1px solid #8b5cf6',
+                                borderRadius: '0.5rem',
+                                color: '#a78bfa',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                            }}
+                        >
+                            ← Back to Learning
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* ============= CLI MODE SIDEBAR ============= */}
+            {currentMode === 'cli' && (
+                <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                    <div style={{
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginBottom: '0.75rem',
+                        paddingLeft: '0.5rem'
+                    }}>
+                        CLI Labs
+                    </div>
+                    
+                    <div style={{
+                        padding: '1rem',
+                        background: 'rgba(251, 191, 36, 0.1)',
+                        borderRadius: '0.75rem',
+                        border: '1px solid rgba(251, 191, 36, 0.3)',
+                        marginBottom: '1rem'
+                    }}>
+                        <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#fbbf24', marginBottom: '0.5rem'}}>
+                            💻 Terminal Required
+                        </div>
+                        <p style={{fontSize: '0.85rem', color: '#cbd5e1', margin: 0}}>
+                            These labs require command-line access. Follow along in your terminal.
+                        </p>
+                    </div>
+                    
+                    <div style={{
+                        marginTop: 'auto',
+                        padding: '1rem',
+                        background: 'rgba(59,130,246,0.1)',
+                        borderRadius: '0.75rem',
+                        border: '1px solid rgba(59,130,246,0.3)'
+                    }}>
+                        <button 
+                            onClick={() => setView('live')}
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                border: 'none',
+                                borderRadius: '0.5rem',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                            }}
+                        >
+                            🌐 Go to Live Network
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* ============= INSTRUCTOR MODE SIDEBAR ============= */}
+            {currentMode === 'instructor' && (
+                <div style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                    <div style={{
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        marginBottom: '0.75rem',
+                        paddingLeft: '0.5rem'
+                    }}>
+                        Instructor Tools
+                    </div>
+                    
+                    <div style={{
+                        padding: '1rem',
+                        background: 'rgba(236, 72, 153, 0.1)',
+                        borderRadius: '0.75rem',
+                        border: '1px solid rgba(236, 72, 153, 0.3)',
+                        marginBottom: '1rem'
+                    }}>
+                        <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#f472b6', marginBottom: '0.5rem'}}>
+                            🎓 Instructor Mode
+                        </div>
+                        <p style={{fontSize: '0.85rem', color: '#cbd5e1', margin: 0}}>
+                            Monitor students, control epochs, and manage the network.
+                        </p>
+                    </div>
+                    
+                    {!isInstructor && (
+                        <div style={{
+                            padding: '1rem',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            borderRadius: '0.5rem',
+                            color: '#fca5a5',
+                            fontSize: '0.85rem'
+                        }}>
+                            ⚠️ Add <code>?mode=instructor</code> to URL for full access
+                        </div>
+                    )}
                 </div>
             )}
         </aside>
@@ -3693,6 +4183,42 @@ function App() {
                                 <ul>
                                     {card.highlight.map(point => <li key={point}>{point}</li>)}
                                 </ul>
+                                {/* VIDEO EMBED - Shows when video URL is provided */}
+                                {card.video && (
+                                    <div style={{
+                                        marginTop: '1.5rem',
+                                        borderRadius: '0.75rem',
+                                        overflow: 'hidden',
+                                        background: '#0f172a',
+                                        border: '2px solid #3b82f6'
+                                    }}>
+                                        <div style={{
+                                            padding: '0.75rem 1rem',
+                                            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                                            color: 'white',
+                                            fontWeight: 'bold',
+                                            fontSize: '0.9rem'
+                                        }}>
+                                            🎬 Video Tutorial
+                                        </div>
+                                        <div style={{position: 'relative', paddingBottom: '56.25%', height: 0}}>
+                                            <iframe
+                                                src={card.video}
+                                                title={`Video: ${card.title}`}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    border: 'none'
+                                                }}
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                 {card.diagram && (
                                     <div style={{marginTop: '1.5rem', padding: '1.5rem', background: 'white', borderRadius: '0.75rem', border: '2px solid #e2e8f0'}}>
                                         <h4 style={{marginTop: 0, marginBottom: '1rem', color: '#1e293b', textAlign: 'center', fontSize: '1.3rem'}}>
@@ -3778,8 +4304,24 @@ function App() {
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem'}}>
                             <div>
                                 <div style={{fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem'}}>
-                                    <span className={`dot ${nodeStatus.connected ? 'green' : 'red'}`} style={{marginRight: '0.5rem'}}></span>
+                                    <span 
+                                        className={`dot ${nodeStatus.connected ? 'green' : 'red'}`} 
+                                        style={{
+                                            marginRight: '0.5rem',
+                                            animation: nodeStatus.connected ? 'pulse 2s infinite' : 'none'
+                                        }}
+                                    ></span>
                             {nodeStatus.connected ? `Block #${nodeStatus.blockNumber}` : 'Connecting...'}
+                                    {nodeStatus.connected && (
+                                        <span style={{
+                                            marginLeft: '8px',
+                                            fontSize: '0.7rem',
+                                            color: '#22d3ee',
+                                            opacity: 0.8
+                                        }}>
+                                            • Live {Math.floor((Date.now() - lastSyncTime) / 1000) < 2 ? '🟢' : '⏳'}
+                                        </span>
+                                    )}
                         </div>
                                 <div style={{fontSize: '0.9rem', opacity: 0.8, fontFamily: 'monospace'}}>
                                     {wallet.address ? `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}` : 'No Wallet'}

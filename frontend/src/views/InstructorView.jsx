@@ -15,6 +15,14 @@ import { rpcClient } from '../lib/RpcClient';
 import PoSABI from '../PoS.json';
 
 export function InstructorView({ provider, posAddress, rpcUrl }) {
+  // Initialize rpcClient with the RPC URL
+  useEffect(() => {
+    if (rpcUrl) {
+      rpcClient.setRpcUrl(rpcUrl);
+      console.log('[InstructorView] RpcClient initialized with:', rpcUrl);
+    }
+  }, [rpcUrl]);
+  
   // Student data
   const [students, setStudents] = useState([]);
   
@@ -240,7 +248,8 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 3000);
+    // Fast 1-second polling for responsive instructor dashboard
+    const interval = setInterval(fetchData, 1000);
     return () => clearInterval(interval);
   }, [provider, posAddress]);
 
@@ -281,6 +290,10 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
     try {
       showStatus('⚡ Slashing validator...');
       const bankSigner = rpcClient.getBankSigner();
+      if (!bankSigner) {
+        showStatus('❌ Bank signer not initialized. Check RPC connection.');
+        return;
+      }
       const contract = new ethers.Contract(posAddress, PoSABI, bankSigner);
       const tx = await contract.slash(address, slashReason);
       await tx.wait();
