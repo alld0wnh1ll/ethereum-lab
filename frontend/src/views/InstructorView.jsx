@@ -67,6 +67,13 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
 
     const fetchData = async () => {
       try {
+        // Verify contract exists before fetching data
+        const code = await provider.getCode(posAddress);
+        if (code === '0x' || code === '0x0') {
+          // Contract not deployed yet - silently skip
+          return;
+        }
+        
         const currentBlock = await provider.getBlockNumber();
         const isInitialLoad = lastBlockRef.current === 0;
         const fromBlock = isInitialLoad ? 0 : lastBlockRef.current + 1;
@@ -243,7 +250,10 @@ export function InstructorView({ provider, posAddress, rpcUrl }) {
         lastBlockRef.current = currentBlock;
         
       } catch (error) {
-        console.error("Error fetching instructor data:", error);
+        // Only log if it's not a contract-not-found error
+        if (!error.message?.includes('BAD_DATA') && !error.message?.includes('could not decode')) {
+          console.error("Error fetching instructor data:", error);
+        }
       } finally {
         setIsLoading(false);
       }

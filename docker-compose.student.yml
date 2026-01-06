@@ -1,0 +1,35 @@
+# Ethereum Immersive Trainer - Student Mode
+#
+# Usage:
+#   1. Get the instructor's IP address and contract address
+#   2. Update INSTRUCTOR_RPC_URL below (or set as environment variable)
+#   3. Run: docker-compose -f docker-compose.student.yml up --build
+#
+# Example:
+#   INSTRUCTOR_RPC_URL=http://192.168.1.100:8545 docker-compose -f docker-compose.student.yml up --build
+
+version: '3.8'
+
+services:
+  ethereum-trainer-student:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ethereum-trainer-student
+    ports:
+      - "5173:5173"    # Frontend Web UI only
+    environment:
+      - MODE=student
+      - FRONTEND_PORT=5173
+      # Set this to instructor's blockchain address:
+      - INSTRUCTOR_RPC_URL=${INSTRUCTOR_RPC_URL:-http://localhost:8545}
+      # Optional: Pre-configure contract address
+      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS:-}
+    restart: unless-stopped
+    networks:
+      - student-net
+
+networks:
+  student-net:
+    driver: bridge
+

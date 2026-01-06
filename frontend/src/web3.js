@@ -115,3 +115,4 @@ export const checkNodeStatus = async (customUrl = null) => {
         return { connected: false, error: error.message };
     }
 };
+

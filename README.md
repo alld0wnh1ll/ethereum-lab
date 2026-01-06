@@ -1,205 +1,263 @@
-# Local Web3 Training Environment
+# Ethereum Immersive Trainer - Interactive Blockchain Learning Environment
+
+A comprehensive educational platform that teaches Ethereum, smart contracts, and Proof-of-Stake consensus through hands-on experimentation in a safe, classroom environment.
+
+## 📋 Table of Contents
+
+- [Prerequisites](#-prerequisites)
+- [Quick Start Options](#-quick-start-options)
+- [Docker Deployment](#-docker-deployment)
+- [For Instructors](#-for-instructors)
+- [For Students](#-for-students)
+- [Running the Lab](#-running-the-lab)
+- [Lab Exercises](#-lab-exercises)
+- [Troubleshooting](#-troubleshooting)
+
+## 🔧 Prerequisites
+
+- **Node.js** (v18 or later) - [Download](https://nodejs.org/)
+- **Git** - [Download](https://git-scm.com/)
+- **Web Browser** (Chrome, Firefox, Edge)
+- **MetaMask** (optional, for wallet interactions) - [Download](https://metamask.io/)
+
+## 🚀 Quick Start Options
+
+### Option 1: GitHub Codespaces (Recommended - No Installation)
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alld0wnh1ll/ethereum-lab)
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/alld0wnh1ll/ethereum-lab)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?style=for-the-badge&logo=github)](https://alld0wnh1ll.github.io/ethereum-lab/)
 
-This is a lightweight, offline-capable Web3 development environment powered by Hardhat. It simulates a smart contract environment with instant block mining, full RPC interface, and pre-funded accounts.
+1. Click the badge above and wait ~30 seconds
+2. Everything is pre-installed and ready to use
+3. **Free for students** with GitHub Student Pack
 
-## 🚀 Quick Start for Students
+### Option 2: Local Development (Windows/Mac/Linux)
 
-### **Recommended: GitHub Codespaces (No Installation Required)**
+Clone and run locally on your machine.
 
-1. Click the badge above: [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/alld0wnh1ll/ethereum-lab)
+### Option 3: Docker Deployment
 
-2. Wait ~30 seconds for your environment to load
+Use Docker for consistent, reproducible deployments.
 
-3. You'll get:
-   - ✅ Full VS Code editor in your browser
-   - ✅ Terminal with bash/PowerShell
-   - ✅ All dependencies pre-installed (Node.js, Hardhat, etc.)
-   - ✅ No setup required!
+## 🐳 Docker Deployment
 
-4. Start the blockchain:
-   ```bash
-   npx hardhat node
-   ```
+Docker provides the easiest way to deploy the Ethereum Immersive Trainer in a classroom or online environment.
 
-5. Open a new terminal and run CLI labs:
-   ```bash
-   npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost
-   ```
+### Prerequisites for Docker
+- **Docker** - [Download](https://www.docker.com/products/docker-desktop/)
+- **Docker Compose** (included with Docker Desktop)
 
-6. Access the web interface:
-   - Codespaces will forward port 5173
-   - Click the popup to open the frontend
-   - Or run: `npm run web`
+### Instructor Mode (Runs Blockchain + Frontend)
 
-**💡 Free for Students:** GitHub Student Pack gives unlimited Codespaces hours!
+```bash
+# Clone the repository
+git clone <repository-url>
+cd blockchain_web
 
----
+# Build and start instructor node
+docker-compose up --build
 
-### **Alternative: Local Setup**
-If you prefer to run on your own computer, follow the installation instructions below.
-
-## Features
-- **Instant Block Mining:** No waiting for confirmations.
-- **Instructor Dashboard:** Special view at `http://localhost:5173/?mode=instructor` to monitor all student activity
-- **Networked Lab Mode:** Students can connect to the instructor's machine to simulate a shared blockchain.
-- **Proof-of-Stake Simulator:** Interactive contract to teach staking, rewards, and slashing concepts.
-- **Built-in Faucet:** Students can request Test ETH directly from the dashboard.
-- **Auto-Generated Wallets:** Each browser tab gets its own unique identity (burner wallet)
-- **Real-time Activity Tracking:** See who's staking, chatting, and transacting
-
-## Prerequisites
-
-- Node.js (v18 or later recommended)
-- `npm` or `yarn`
-- MetaMask (Browser Extension)
-- ngrok (optional, for remote student access) - [Download](https://ngrok.com/download)
-
-## 🚀 Quick Start
-
-### For Instructors (Host the Blockchain)
-```powershell
-# Local network (same room)
-./start-lab-instructor.ps1
-
-# Remote students (via internet)
-./start-lab-instructor.ps1 -UseNgrok
+# Or run in background
+docker-compose up --build -d
 ```
 
-### For Students (Connect to Instructor)
-```powershell
-./start-lab-student.ps1
-# Enter contract address and RPC URL when prompted
+The instructor container will:
+- ✅ Start a Hardhat blockchain node on port 8545
+- ✅ Deploy smart contracts automatically
+- ✅ Serve the frontend on port 5173
+- ✅ Display the contract address in the console
+
+**Access Points:**
+- Frontend: `http://localhost:5173`
+- Blockchain RPC: `http://localhost:8545`
+- Contract Address: `http://localhost:5173/contract-address.txt`
+- Config JSON: `http://localhost:5173/api/config.json`
+
+### Student Mode (Frontend Only)
+
+Students connect to the instructor's blockchain:
+
+```bash
+# Set instructor's RPC URL and start
+INSTRUCTOR_RPC_URL=http://<instructor-ip>:8545 docker-compose -f docker-compose.student.yml up --build
 ```
 
-### Legacy All-in-One Setup
-```powershell
-./start-lab.ps1
+Or edit `docker-compose.student.yml` and set the `INSTRUCTOR_RPC_URL` environment variable.
+
+### Docker Quick Reference
+
+```bash
+# Start instructor node
+docker-compose up --build
+
+# Start in background
+docker-compose up --build -d
+
+# View logs
+docker-compose logs -f
+
+# Stop containers
+docker-compose down
+
+# Student mode with instructor IP
+INSTRUCTOR_RPC_URL=http://192.168.1.100:8545 docker-compose -f docker-compose.student.yml up --build
 ```
-This will:
-- Start the blockchain node
-- Deploy contracts
-- Open the instructor dashboard at `http://localhost:5173/?mode=instructor`
-- Display all necessary information
 
-### Remote Student Access (via ngrok)
-After running `start-lab.ps1`, open a new terminal:
-```powershell
-./start-ngrok.ps1
+### Getting the Contract Address
+
+After starting the instructor container, the contract address is available at:
+1. **Console output** - Displayed prominently when container starts
+2. **Text file** - `http://localhost:5173/contract-address.txt`
+3. **JSON config** - `http://localhost:5173/api/config.json`
+
+Share this address with your students!
+
+## 👨‍🏫 For Instructors
+
+### Step 1: Clone the Repository
+```bash
+git clone <repository-url>
+cd blockchain_web
 ```
-This will:
-- Expose your frontend via HTTPS
-- Display the URL for remote students
-- Show connection instructions
 
-### Manual Setup
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+### Step 2: Install Dependencies
+```bash
+npm install
+```
 
-2.  **Start the Blockchain Node:**
-    ```bash
-    npm run chain
-    ```
-    *This starts the node on `0.0.0.0`, allowing other devices on your Wi-Fi to connect.*
+### Step 3: Start the Lab Environment
+```bash
+# For Windows PowerShell
+.\start-lab-instructor.ps1
 
-3.  **Deploy Contracts:**
-    Open a new terminal and run:
-    ```bash
-    npm run deploy
-    ```
-    **Copy the "PoS Simulator" address from the output.**
+# For remote students (via internet)
+.\start-lab-instructor.ps1 -UseNgrok
+```
 
-4.  **Start the Dashboard:**
-    ```bash
-    npm run web
-    ```
-    Open `http://localhost:5173` in your browser.
+This automatically:
+- ✅ Starts the blockchain node
+- ✅ Deploys smart contracts
+- ✅ Opens instructor dashboard at `http://localhost:5173/?mode=instructor`
+- ✅ Displays contract address and connection info
 
----
+### Step 4: Share Connection Information
+- **Contract Address**: Shown in terminal output (starts with 0x...)
+- **RPC URL**: `http://YOUR_IP:8545` (for local) or ngrok URL (for remote)
+- **Dashboard URL**: `http://YOUR_IP:5173` (for local) or ngrok URL (for remote)
 
-## 🎓 Classroom Lab Setup (Networked Session)
+## 👨‍🎓 For Students
 
-To have multiple students interact on the same blockchain:
+### Option A: Connect to Instructor's Lab
+```bash
+# Clone repository
+git clone <repository-url>
+cd blockchain_web
 
-### 1. Instructor Setup
-1.  Run the Quick Start steps above.
-2.  Find your computer's **Local IP Address**:
-    *   **Windows:** Run `ipconfig` (Look for IPv4 Address, e.g., `192.168.1.50`)
-    *   **Mac/Linux:** Run `ifconfig` or `ip a`
-3.  Write your IP Address and the **PoS Contract Address** on the whiteboard.
+# Install dependencies
+npm install
 
-### 2. Student Setup
-1.  Open the Dashboard URL provided by the instructor (e.g., `http://192.168.1.50:5173`).
-    *   *Alternatively, students can run the frontend locally (`npm run web`) and point it to the instructor's IP.*
-2.  In the Dashboard header, change **Node URL** to:
-    `http://<INSTRUCTOR_IP>:8545`
-    *(Example: http://192.168.1.50:8545)*
-3.  **Connect MetaMask:**
-    *   Create a **new, empty account** in MetaMask.
-    *   Add Network:
-        *   **Name:** Classroom Net
-        *   **RPC URL:** `http://<INSTRUCTOR_IP>:8545`
-        *   **Chain ID:** `31337`
-        *   **Currency:** ETH
-4.  **Get Funds:** Click the **"💰 Request 5 ETH"** button on the dashboard.
-5.  **Start Staking:** Paste the PoS Contract Address and click "Stake".
+# Run student setup
+.\start-lab-student.ps1
+```
 
----
+When prompted:
+1. Enter the **Contract Address** from your instructor
+2. Enter the **RPC URL** from your instructor
+
+### Option B: Use Instructor's Hosted Frontend
+1. Open the URL provided by your instructor
+2. Enter the Contract Address and RPC URL in the connection fields
+3. Click "Request 5 ETH" to get started
+
+## 🏫 Running the Lab
+
+### Instructor Dashboard Features
+- **Real-time Activity Monitoring**: See all student actions
+- **Network Statistics**: Track total staked ETH and active validators
+- **Student Management**: Fund students, slash penalties, advance epochs
+- **Live Network Control**: Simulate block production and attestation
+
+### Student Experience
+1. **Request Test ETH**: Click "💰 Request 5 ETH" to get funds
+2. **Connect Wallet**: Use MetaMask or burner wallet
+3. **Stake ETH**: Lock funds to become a validator
+4. **Earn Rewards**: Participate in consensus and earn staking rewards
+5. **Interact**: Use the chat, explore mini-labs, and learn concepts
+
+### Network Architecture
+```
+Instructor Machine          Student Machines
+┌─────────────────┐        ┌──────────────┐
+│ Blockchain Node │◄──────►│ Frontend #1  │
+│ (port 8545)     │        │              │
+│ Smart Contracts │◄──────►│ Frontend #2  │
+│ Instructor      │        │              │
+│ Dashboard       │◄──────►│ Frontend #3  │
+└─────────────────┘        └──────────────┘
+```
+
+Everyone runs the frontend locally but connects to the instructor's blockchain!
 
 ## 🧪 Lab Exercises
 
-### Exercise 1: The Faucet
-*   **Goal:** Understand how transactions require gas and funds.
-*   **Action:** Use the "Request 5 ETH" button.
-*   **Observation:** Watch the wallet balance update. Check MetaMask activity to see the incoming transfer.
+### Core Learning Activities
 
-### Exercise 2: Proof of Stake
-*   **Goal:** Understand network security via capital lock-up.
-*   **Action:** Stake 1.0 ETH into the PoS contract.
-*   **Observation:**
-    1.  "My Stake" updates to 1.0.
-    2.  **"Global Network Stake"** increases for everyone in the class.
-    3.  "Pending Rewards" begin accumulating in real-time.
+1. **Getting Started**
+   - Request test ETH from the faucet
+   - Explore wallet functionality
+   - Understand gas and transaction fees
 
-### Exercise 3: Unbonding
-*   **Goal:** Realize rewards.
-*   **Action:** Click "Unstake & Claim".
-*   **Observation:** Principal + Rewards are returned to the wallet. The Global Network Stake decreases.
+2. **Proof-of-Stake Fundamentals**
+   - Stake ETH to become a validator
+   - Monitor real-time reward accumulation
+   - Understand capital lock-up for network security
 
-## 🌐 Remote Access via ngrok (For Online Classes)
+3. **Network Economics**
+   - Participate in shared staking pool
+   - Observe how individual actions affect network-wide statistics
+   - Learn about slashing penalties and validator responsibilities
 
-If students are not on the same Wi-Fi network, use **ngrok** to expose your local node to the internet:
+4. **Interactive Mini-Labs**
+   - Blockchain Visualizer: Watch blocks being created
+   - Address Decoder: Understand Ethereum addresses
+   - Staking Calculator: Model reward scenarios
+   - Validator Simulator: Experience consensus mechanisms
 
-### Instructor Setup:
-1.  **Install ngrok:** Download from [ngrok.com](https://ngrok.com) or `choco install ngrok` (Windows)
-2.  **Start your Hardhat node** (as usual): `npm run chain`
-3.  **Expose port 8545:**
-    ```bash
-    ngrok http 8545
-    ```
-4.  **Copy the HTTPS URL** ngrok provides (e.g., `https://abc123.ngrok.io`)
-5.  **Share this URL** with students (they paste it in the "Node URL" box)
+## 🌐 Remote Access (Optional)
 
-### Student Setup:
-1.  Open the Dashboard (can be hosted anywhere or run locally)
-2.  In the **"Node URL"** field, paste the ngrok URL from the instructor
-3.  Click "Join Class List" to announce your presence
-4.  Start interacting!
+For online classes where students aren't on the same network:
 
-**Note:** The blockchain itself provides consensus. All browsers reading from the same node (via ngrok) see identical data. There's no need for browsers to vote—the Hardhat node is the single source of truth.
+### Using ngrok for Remote Access
+1. **Install ngrok**: Download from [ngrok.com](https://ngrok.com)
+2. **Start your blockchain**: `npm run chain`
+3. **Expose the RPC endpoint**: `ngrok http 8545`
+4. **Share the HTTPS URL** with students
 
-## Troubleshooting
+Students then use this URL as their RPC endpoint instead of a local IP address.
 
-- **"Network Error" / "Connection Refused":**
-    - Ensure the Instructor's computer is on the **same Wi-Fi** as the students (or use ngrok for remote).
-    - Ensure the Instructor's **Firewall** allows connections on port `8545` and `5173`.
-- **ngrok Connection Issues:**
-    - Make sure ngrok is pointing to port `8545` (not `5173`).
-    - Students should use the **HTTPS** URL ngrok provides (not HTTP).
-- **Nonce Errors:** If you restart the node (`npm run chain`), tell students to reset their MetaMask account:
-    - *Settings -> Advanced -> Clear activity tab data.*
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**"Connection Refused" or "Network Error"**
+- Verify the instructor's computer and students are on the same network
+- Check that firewall allows connections on ports 8545 and 5173
+- For remote access, ensure ngrok is pointing to port 8545 and students use the HTTPS URL
+
+**MetaMask Nonce Errors**
+- If you restart the blockchain node, students should reset MetaMask:
+  - Settings → Advanced → Clear activity tab data
+
+**Frontend Won't Load**
+- Ensure all dependencies are installed: `npm install`
+- Try clearing browser cache or using incognito mode
+- Check that port 5173 isn't already in use
+
+**Contract Deployment Issues**
+- Verify the contract address is correct (42 characters, starts with 0x)
+- Check that the blockchain node is running
+- Try redeploying contracts: `npm run deploy`
+
+### Getting Help
+- Check the terminal output for error messages
+- Verify all prerequisites are installed
+- Try restarting the lab environment

@@ -123,6 +123,13 @@ class BlockchainSync {
     }
 
     try {
+      // Verify contract exists before fetching data
+      const code = await this.provider.getCode(this.contractAddress);
+      if (code === '0x' || code === '0x0') {
+        // Contract not deployed yet - silently skip
+        return;
+      }
+      
       // Get current block number first
       const blockNumber = await this.provider.getBlockNumber();
       
@@ -159,6 +166,11 @@ class BlockchainSync {
       });
       
     } catch (error) {
+      // Ignore BAD_DATA errors (contract not deployed) - not a real error
+      if (error.message?.includes('BAD_DATA') || error.message?.includes('could not decode')) {
+        return;
+      }
+      
       this.retryCount++;
       console.warn('[BlockchainSync] Fetch error (attempt', this.retryCount, '):', error.message);
       
@@ -276,9 +288,15 @@ class BlockchainSync {
    * Get validator stats for a specific address
    */
   async getValidatorStats(address) {
-    if (!this.contract) return null;
+    if (!this.contract || !this.provider) return null;
     
     try {
+      // Verify contract exists
+      const code = await this.provider.getCode(this.contractAddress);
+      if (code === '0x' || code === '0x0') {
+        return null; // Contract not deployed
+      }
+      
       const [stats, hasAttested, minDuration, unbondingReq] = await Promise.all([
         this.contract.getValidatorStats(address),
         this.contract.hasAttestedThisEpoch(address),
@@ -298,7 +316,10 @@ class BlockchainSync {
         withdrawalRequested: Number(unbondingReq) > 0
       };
     } catch (e) {
-      console.error('[BlockchainSync] getValidatorStats error:', e);
+      // Only log if it's not a contract-not-found error
+      if (!e.message?.includes('BAD_DATA') && !e.message?.includes('could not decode')) {
+        console.error('[BlockchainSync] getValidatorStats error:', e);
+      }
       return null;
     }
   }
@@ -318,6 +339,4 @@ class BlockchainSync {
 
 // Singleton instance
 export const blockchainSync = new BlockchainSync();
-
-// Export for direct use - React hook is optional and can be imported if needed
 

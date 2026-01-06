@@ -56,7 +56,13 @@ const FeedbackButton = ({ section, onFeedback }) => {
     
     const handleSubmit = () => {
         // Save feedback to localStorage
-        const existingFeedback = JSON.parse(localStorage.getItem('lab_feedback') || '[]');
+        let existingFeedback = [];
+        try {
+            existingFeedback = JSON.parse(localStorage.getItem('lab_feedback') || '[]');
+            if (!Array.isArray(existingFeedback)) existingFeedback = [];
+        } catch {
+            existingFeedback = [];
+        }
         existingFeedback.push({
             section,
             rating,
@@ -208,8 +214,22 @@ const SocialProof = ({ validators, messages, stakersCount }) => {
     
     useEffect(() => {
         // Get aggregated local stats
-        const feedback = JSON.parse(localStorage.getItem('lab_feedback') || '[]');
-        const savedScores = JSON.parse(localStorage.getItem('quiz_scores') || '{}');
+        let feedback = [];
+        let savedScores = {};
+        try {
+            feedback = JSON.parse(localStorage.getItem('lab_feedback') || '[]');
+            if (!Array.isArray(feedback)) feedback = [];
+        } catch {
+            feedback = [];
+        }
+        try {
+            savedScores = JSON.parse(localStorage.getItem('quiz_scores') || '{}') || {};
+            if (savedScores === null || typeof savedScores !== 'object' || Array.isArray(savedScores)) {
+                savedScores = {};
+            }
+        } catch {
+            savedScores = {};
+        }
         const sessionStart = localStorage.getItem('session_start');
         
         setLocalStats({
@@ -448,6 +468,15 @@ const EvaluationSurvey = ({ onComplete }) => {
 
 // --- ORIENTATION CONTENT ---
 const INTRO_SECTIONS = [
+    {
+        title: "🌐 What is Ethereum?",
+        bullets: [
+            "Ethereum is not just money—it's a global, shared computer that no one owns",
+            "Decentralized: Runs on thousands of computers (nodes) simultaneously worldwide",
+            "Immutable: Once data is written to the blockchain, it cannot be erased or altered",
+            "Programmable: You can write code (smart contracts) that executes automatically"
+        ]
+    },
     {
         title: "🎯 Why This Lab Exists",
         bullets: [
@@ -756,84 +785,7 @@ const EXPLORE_MISSIONS = [
     }
 ]
 
-// --- CONTENT: LEARNING MODULES ---
-const LESSONS = [
-    {
-        id: "intro",
-        title: "What is Ethereum?",
-        content: (
-            <div className="lesson-slide">
-                <h3>The World Computer</h3>
-                <p>Ethereum is not just money. It is a global, shared computer that no one owns.</p>
-                <ul>
-                    <li><strong>Decentralized:</strong> Runs on thousands of computers (Nodes) at once.</li>
-                    <li><strong>Immutable:</strong> Once data is written, it cannot be erased.</li>
-                    <li><strong>Programmable:</strong> You can write code (Smart Contracts) that runs on it.</li>
-                </ul>
-            </div>
-        )
-    },
-    {
-        id: "account",
-        title: "Accounts & Keys",
-        content: (
-            <div className="lesson-slide">
-                <h3>Your Digital Identity</h3>
-                <p>To use Ethereum, you need a Key Pair:</p>
-                <div className="concept-box">
-                    <p>🔑 <strong>Private Key:</strong> Like your Password. NEVER share this. It signs transactions.</p>
-                    <p>bad64...91a2</p>
-                </div>
-                <div className="concept-box">
-                    <p>📬 <strong>Public Address:</strong> Like your Email. Share this to receive money.</p>
-                    <p>0x71C...9A21</p>
-                </div>
-            </div>
-        )
-    },
-    {
-        id: "tx",
-        title: "Transactions & Gas",
-        content: (
-            <div className="lesson-slide">
-                <h3>Moving Data</h3>
-                <p>Every time you want to change the blockchain (send money, post chat), you must send a <strong>Transaction</strong>.</p>
-                <p>Miners/Validators do the work to process it. You pay them a fee called <strong>Gas</strong> (in ETH).</p>
-            </div>
-        )
-    },
-    {
-        id: "consensus",
-        title: "Consensus: PoW vs PoS",
-        content: (
-            <div className="lesson-slide">
-                <h3>How Does Everyone Agree?</h3>
-                <p>Blockchains need a way for thousands of computers to agree on the "truth" without a central authority. This is called <strong>Consensus</strong>.</p>
-                
-                <div className="concept-box" style={{marginTop: '20px'}}>
-                    <h4>⚡ Proof of Work (PoW) - Bitcoin's Method</h4>
-                    <ul>
-                        <li>Miners compete to solve complex math puzzles</li>
-                        <li>First to solve gets to add the next block</li>
-                        <li>Requires massive computing power & electricity</li>
-                        <li><strong>Problem:</strong> Wasteful energy consumption</li>
-                    </ul>
-                </div>
-                
-                <div className="concept-box" style={{marginTop: '20px'}}>
-                    <h4>🌱 Proof of Stake (PoS) - Ethereum's Method</h4>
-                    <ul>
-                        <li>Validators "stake" their ETH as collateral</li>
-                        <li>Algorithm selects validators based on stake size</li>
-                        <li>Selected validator proposes the next block</li>
-                        <li><strong>Benefit:</strong> 99.95% less energy than PoW!</li>
-                        <li><strong>Security:</strong> Bad actors lose their staked ETH (slashing)</li>
-                    </ul>
-                </div>
-            </div>
-        )
-    },
-];
+// LESSONS removed - content now covered in INTRO_SECTIONS and CONCEPT_CARDS
 
 // --- MINI-LABS: Interactive Calculators & Simulations ---
 function MiniLab_BlockchainVisualizer() {
@@ -3282,7 +3234,7 @@ function ExploreView({ missions, exploreProgress, setExploreProgress, onBack, on
                     className="primary-btn"
                     onClick={onContinue}
                 >
-                    Continue to Learn Module →
+                    Continue to Practice →
                 </button>
             </div>
         </div>
@@ -7277,7 +7229,7 @@ function App() {
   const urlParams = new URLSearchParams(window.location.search)
   const isInstructor = urlParams.get('mode') === 'instructor'
   
-  const [view, setView] = useState(isInstructor ? 'instructor' : 'intro'); // intro -> concepts -> explore -> learn -> sim -> live -> cli | instructor
+  const [view, setView] = useState(isInstructor ? 'instructor' : 'intro'); // intro -> concepts -> explore -> sim -> live -> cli | instructor
   const [appMode, setAppMode] = useState('learning'); // 'learning' | 'live' | 'cli' | 'instructor' - top-level mode separation
   
   // --- LIVE MODE STATE ---
@@ -7325,12 +7277,62 @@ function App() {
   const [provider, setProvider] = useState(null)
   const [nodeStatus, setNodeStatus] = useState({ connected: false, blockNumber: 0 })
   const [wallet, setWallet] = useState({ address: null, signer: null, balance: '0', mode: null })
-  const [posAddress, setPosAddress] = useState(() => localStorage.getItem("pos_addr") || "")
+  const [posAddress, setPosAddress] = useState(() => {
+    const stored = localStorage.getItem("pos_addr");
+    if (stored && stored.length === 42) return stored;
+    // Fallback: hardcoded address for local development
+    // This matches what's deployed by scripts/deploy.js
+    return "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
+  })
+  
+  // Auto-load contract config from Docker deployment (if available)
+  useEffect(() => {
+    const loadDockerConfig = async () => {
+      try {
+        // Try to fetch config from Docker-generated endpoint
+        const response = await fetch('/api/config.json');
+        if (response.ok) {
+          const config = await response.json();
+          console.log('[Config] Loaded Docker config:', config);
+          
+          // Auto-set contract address if not already set
+          if (config.contractAddress && !localStorage.getItem("pos_addr")) {
+            setPosAddress(config.contractAddress);
+            localStorage.setItem("pos_addr", config.contractAddress);
+            console.log('[Config] Auto-set contract address:', config.contractAddress);
+          }
+          
+          // Auto-set RPC URL if in student mode
+          if (config.rpcUrl && config.mode === 'student') {
+            setRpcUrl(config.rpcUrl);
+            localStorage.setItem("custom_rpc", config.rpcUrl);
+            console.log('[Config] Auto-set RPC URL:', config.rpcUrl);
+          }
+        }
+      } catch (e) {
+        // Config endpoint not available - normal for local development
+        console.log('[Config] Docker config not available (normal for local dev)');
+      }
+    };
+    loadDockerConfig();
+  }, [])
   const [messages, setMessages] = useState([])
   const [chatInput, setChatInput] = useState("")
   const [validators, setValidators] = useState([])
   const [statusMsg, setStatusMsg] = useState('')
   const [isSyncing, setIsSyncing] = useState(false)
+  const hasAutoJoined = useRef(false) // Track if we've auto-joined this session
+  
+  // Nickname system - store nicknames for classmates
+  const [nicknames, setNicknames] = useState(() => {
+    try {
+      const stored = localStorage.getItem("classmate_nicknames");
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
+  const [myNickname, setMyNickname] = useState(() => localStorage.getItem("my_nickname") || "");
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState("");
   const [sessionStart] = useState(() => {
       const stored = localStorage.getItem("session_start")
       if (!stored) {
@@ -7358,7 +7360,8 @@ function App() {
     missedAttestations: 0,
     unbondingTime: 0,
     minStakeDuration: 0,
-    hasAttestedThisEpoch: false
+    hasAttestedThisEpoch: false,
+    unbondingStartTime: 0
   })
   
   // Enhanced PoS State
@@ -7376,6 +7379,64 @@ function App() {
     localStorage.setItem('learning_trail', JSON.stringify(next))
   }
 
+  // Reset entire session - clears all user data and creates fresh start
+  const resetSession = () => {
+    if (!window.confirm('🔄 Reset your session?\n\nThis will:\n• Create a new wallet identity\n• Clear all progress\n• Clear chat nickname\n\nYour test ETH will be lost. Continue?')) {
+      return;
+    }
+    
+    // Clear all localStorage keys
+    const keysToRemove = [
+      'eth_lab_wallet_pk',      // Wallet private key
+      'learning_trail',         // Learning progress
+      'explore_progress',       // Explore section progress
+      'lab_feedback',           // Feedback data
+      'quiz_scores',            // Quiz scores
+      'session_start',          // Session start time
+      'lab_evaluation',         // Evaluation survey
+      'classmate_nicknames',    // Classmate nicknames
+      'pos_addr',               // Contract address (will reload default)
+      'my_nickname'             // User's own nickname
+    ];
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Clear sessionStorage too
+    sessionStorage.removeItem('guest_sk');
+    
+    // Reset React state
+    setTrail({ intro: false, concepts: false, explore: false });
+    setExploreProgress([false, false, false]);
+    setWallet({ address: null, signer: null, balance: '0', mode: null });
+    setMessages([]);
+    setValidators([]);
+    setTxHistory([]);
+    setMyStake({ 
+      amount: '0', 
+      reward: '0',
+      slashCount: 0,
+      blocksProposed: 0,
+      missedAttestations: 0,
+      unbondingTime: 0,
+      minStakeDuration: 0,
+      hasAttestedThisEpoch: false,
+      unbondingStartTime: 0
+    });
+    setNicknames({});
+    setMyNickname('');
+    setWithdrawalRequested(false);
+    hasAutoJoined.current = false;
+    
+    // Record new session start
+    localStorage.setItem('session_start', Date.now().toString());
+    
+    // Reload the page to ensure clean state
+    setStatusMsg('🔄 Session reset! Reloading...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
   const markStageComplete = (stage) => {
     if (trail[stage]) return
     const updated = { ...trail, [stage]: true }
@@ -7390,8 +7451,7 @@ function App() {
     intro: true,
     concepts: true, // Always unlocked
     explore: true, // Always unlocked
-    learn: true, // Always unlocked
-    sim: true, // Always unlocked
+    sim: true, // Always unlocked - Explore flows directly to Sim
     live: true, // Always unlocked - students can go straight to live network
     cli: true // Always unlocked - CLI labs
   }
@@ -7400,6 +7460,13 @@ function App() {
         setView(target)
         setNavHint('')
   }
+
+  // 0. Save default contract address to localStorage if not already saved
+  useEffect(() => {
+    if (posAddress && posAddress.length === 42 && !localStorage.getItem("pos_addr")) {
+      localStorage.setItem("pos_addr", posAddress);
+    }
+  }, [posAddress]);
 
   // 1. Initialize Provider
   useEffect(() => {
@@ -7468,6 +7535,63 @@ function App() {
     }
   }, [provider, view, wallet.mode]);
 
+  // 3. Auto-Join Class List when wallet is ready
+  useEffect(() => {
+    // Reset auto-join flag when leaving live view
+    if (view !== 'live') {
+      hasAutoJoined.current = false;
+      return;
+    }
+    
+    // Only auto-join with valid wallet and contract
+    if (!wallet.address || !wallet.signer || !posAddress || posAddress.length !== 42) return;
+    // Don't re-join if already in validators list or already attempted this session
+    if (validators.includes(wallet.address) || hasAutoJoined.current) return;
+    
+    const autoJoinClass = async () => {
+      hasAutoJoined.current = true; // Mark as attempted
+      console.log("[AutoJoin] Joining class as:", wallet.address);
+      
+      try {
+        // Check if wallet has funds - can't join without gas
+        const balance = await provider.getBalance(wallet.address);
+        if (balance === 0n) {
+          console.log("[AutoJoin] Wallet has no funds, skipping auto-join (user needs to use faucet first)");
+          hasAutoJoined.current = false; // Allow retry after they get funds
+          return;
+        }
+        
+        // Verify contract exists before trying to join
+        const code = await provider.getCode(posAddress);
+        if (code === '0x' || code === '0x0') {
+          console.log("[AutoJoin] Contract not deployed yet, skipping auto-join");
+          hasAutoJoined.current = false; // Allow retry when contract is ready
+          return;
+        }
+        
+        setStatusMsg("👋 Joining class...");
+        const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+        const tx = await contract.sendMessage("👋 Joined the class!");
+        await tx.wait();
+        console.log("[AutoJoin] Successfully joined class");
+        setStatusMsg("✅ Joined class!");
+        
+        // Refresh data to show in classmates list  
+        blockchainSync.forceRefresh();
+        
+        setTimeout(() => setStatusMsg(""), 2000);
+      } catch (err) {
+        console.error("[AutoJoin] Failed:", err);
+        // Don't show error to user - they can manually join if needed
+        hasAutoJoined.current = false; // Allow retry on next attempt
+      }
+    };
+    
+    // Delay auto-join to ensure wallet is fully initialized
+    const timer = setTimeout(autoJoinClass, 1500);
+    return () => clearTimeout(timer);
+  }, [view, wallet.address, wallet.signer, posAddress, validators]);
+
   // Real-time balance updates and transaction history
   useEffect(() => {
     if (!provider || !wallet.address || view !== 'live') return;
@@ -7486,27 +7610,40 @@ function App() {
         const currentBlock = await provider.getBlockNumber()
         const history = []
         
-        // Get last 100 blocks of transactions
-        for (let i = Math.max(0, currentBlock - 100); i <= currentBlock; i++) {
-          const block = await provider.getBlock(i, true)
-          if (block && block.transactions) {
-            for (const tx of block.transactions) {
-              if (tx.from === wallet.address || tx.to === wallet.address) {
-                history.push({
-                  hash: tx.hash,
-                  from: tx.from,
-                  to: tx.to,
-                  value: ethers.formatEther(tx.value),
-                  blockNumber: i,
-                  timestamp: block.timestamp,
-                  type: tx.from === wallet.address ? 'sent' : 'received'
-                })
+        // Get last 50 blocks of transactions (reduced for performance)
+        const startBlock = Math.max(0, currentBlock - 50);
+        for (let i = startBlock; i <= currentBlock; i++) {
+          try {
+            const block = await provider.getBlock(i, true) // true = prefetchedTransactions
+            if (block && block.prefetchedTransactions) {
+              // Ethers v6 uses prefetchedTransactions
+              for (const tx of block.prefetchedTransactions) {
+                const fromAddr = tx.from?.toLowerCase();
+                const toAddr = tx.to?.toLowerCase();
+                const myAddr = wallet.address?.toLowerCase();
+                
+                if (fromAddr === myAddr || toAddr === myAddr) {
+                  history.push({
+                    hash: tx.hash,
+                    from: tx.from,
+                    to: tx.to || 'Contract Creation',
+                    value: ethers.formatEther(tx.value || 0n),
+                    blockNumber: i,
+                    timestamp: Number(block.timestamp),
+                    type: fromAddr === myAddr ? 'sent' : 'received'
+                  })
+                }
               }
             }
+          } catch (blockErr) {
+            // Skip individual block errors
+            console.debug(`Skipping block ${i}:`, blockErr.message);
           }
         }
         
-        setTxHistory(history.sort((a, b) => b.timestamp - a.timestamp).slice(0, 20))
+        if (history.length > 0) {
+          setTxHistory(history.sort((a, b) => b.timestamp - a.timestamp).slice(0, 20))
+        }
       } catch (e) {
         console.error("Transaction history error:", e)
       }
@@ -7515,6 +7652,13 @@ function App() {
     const fetchStakeInfo = async () => {
       if (!posAddress || posAddress.length !== 42) return
       try {
+        // Verify contract exists before calling functions
+        const code = await provider.getCode(posAddress)
+        if (code === '0x' || code === '0x0') {
+          // Contract not deployed at this address - silently skip
+          return
+        }
+        
         const contract = new ethers.Contract(posAddress, PoSABI, provider)
         
         // Get comprehensive validator stats
@@ -7528,28 +7672,42 @@ function App() {
           contract.withdrawalRequestTime(wallet.address)
         ])
         
+        // Calculate unbonding time remaining client-side for real-time countdown
+        // withdrawalRequestTime is when unbonding started, unbonding period is 60 seconds
+        const unbondingTimestamp = Number(unbonding);
+        let unbondingRemaining = 0;
+        if (unbondingTimestamp > 0) {
+          const currentBlockTime = Math.floor(Date.now() / 1000);
+          const unbondingEndTime = unbondingTimestamp + 60; // 60 second unbonding period
+          unbondingRemaining = Math.max(0, unbondingEndTime - currentBlockTime);
+        }
+        
         setMyStake({
           amount: ethers.formatEther(stats.stakeAmount),
           reward: ethers.formatEther(stats.rewardAmount),
           slashCount: Number(stats.slashes),
           blocksProposed: Number(stats.blocks),
           missedAttestations: Number(stats.attestations),
-          unbondingTime: Number(stats.unbondingTime),
+          unbondingTime: unbondingRemaining,
           minStakeDuration: Number(minDuration),
-          hasAttestedThisEpoch: hasAttested
+          hasAttestedThisEpoch: hasAttested,
+          unbondingStartTime: unbondingTimestamp // Store the start time for reference
         })
         
         setCurrentEpoch(Number(epoch))
         setTimeUntilNextEpoch(Number(epochTime))
         setCurrentAPY(Number(apy) / 100) // Convert from 500 to 5.00
-        setWithdrawalRequested(Number(unbonding) > 0)
+        setWithdrawalRequested(unbondingTimestamp > 0)
         
         // Update sync time indicator
         lastSyncRef.current = Date.now()
         setLastSyncTime(Date.now())
         
       } catch (e) {
-        console.error("Stake info error:", e)
+        // Only log if it's not a contract-not-found error
+        if (!e.message?.includes('BAD_DATA') && !e.message?.includes('could not decode')) {
+          console.error("Stake info error:", e)
+        }
       }
     }
     
@@ -7559,17 +7717,29 @@ function App() {
     fetchStakeInfo()
     
     // Fast polling for responsive updates (block listeners don't work over network)
-    // Use 1-second interval for balance/stake, stagger other updates
+    // Use 2-second interval for blockchain data, 1-second for local countdown
     let pollCount = 0;
     const interval = setInterval(() => {
       pollCount++;
       
-      // Balance and stake info every 1 second
-      updateBalance();
-      fetchStakeInfo();
+      // Local countdown update every second (no blockchain call needed)
+      if (withdrawalRequested && myStake.unbondingStartTime > 0) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        const unbondingEndTime = myStake.unbondingStartTime + 60;
+        const remaining = Math.max(0, unbondingEndTime - currentTime);
+        setMyStake(prev => ({ ...prev, unbondingTime: remaining }));
+      }
       
-      // Transaction history every 3 seconds (less critical)
-      if (pollCount % 3 === 0) {
+      // Balance update every second
+      updateBalance();
+      
+      // Stake info from blockchain every 2 seconds (less frequent to reduce load)
+      if (pollCount % 2 === 0) {
+        fetchStakeInfo();
+      }
+      
+      // Transaction history every 5 seconds (less critical)
+      if (pollCount % 5 === 0) {
         fetchTxHistory();
       }
     }, 1000);
@@ -7577,7 +7747,7 @@ function App() {
     return () => {
       clearInterval(interval);
     }
-  }, [provider, wallet.address, view, posAddress])
+  }, [provider, wallet.address, view, posAddress, withdrawalRequested, myStake.unbondingStartTime])
 
   // Helpers
   const requestFunds = async () => {
@@ -7594,8 +7764,19 @@ function App() {
         const bankWallet = new ethers.Wallet(BANK_PRIVATE_KEY, bankProvider)
         const tx = await bankWallet.sendTransaction({ to: wallet.address, value: ethers.parseEther("5.0") })
         setStatusMsg("Processing faucet request...")
-        await tx.wait()
+        const receipt = await tx.wait()
         setStatusMsg("Received 5 ETH from faucet!")
+        
+        // Immediately add to transaction history
+        setTxHistory(prev => [{
+          hash: tx.hash,
+          from: bankWallet.address,
+          to: wallet.address,
+          value: "5.0",
+          blockNumber: receipt.blockNumber,
+          timestamp: Math.floor(Date.now() / 1000),
+          type: 'received'
+        }, ...prev].slice(0, 20))
         
         // Update balance immediately
         const bal = await provider.getBalance(wallet.address)
@@ -7605,6 +7786,7 @@ function App() {
         setTimeout(() => setStatusMsg(""), 3000)
     } catch (e) { 
         setStatusMsg("Faucet Failed: " + (e.message || "Unknown error"))
+        setTimeout(() => setStatusMsg(""), 5000)
     }
   }
 
@@ -7623,16 +7805,32 @@ function App() {
               to: recipient,
               value: ethers.parseEther(sendAmount)
           })
-          await tx.wait()
+          const receipt = await tx.wait()
           setStatusMsg(`Sent ${sendAmount} ETH to ${recipient.slice(0,6)}!`)
+          
+          // Immediately add to transaction history
+          setTxHistory(prev => [{
+            hash: tx.hash,
+            from: wallet.address,
+            to: recipient,
+            value: sendAmount,
+            blockNumber: receipt.blockNumber,
+            timestamp: Math.floor(Date.now() / 1000),
+            type: 'sent'
+          }, ...prev].slice(0, 20))
+          
           setSendAmount("")
           setRecipient("") // Clear recipient after successful send
           
           // Update balance immediately
           const bal = await provider.getBalance(wallet.address)
           setWallet(prev => ({ ...prev, balance: ethers.formatEther(bal) }))
+          
+          // Clear status after 3 seconds
+          setTimeout(() => setStatusMsg(""), 3000)
       } catch (e) { 
-          setStatusMsg("Transfer Failed: " + e.message) 
+          setStatusMsg("Transfer Failed: " + e.message)
+          setTimeout(() => setStatusMsg(""), 5000)
       }
   }
   
@@ -7641,6 +7839,13 @@ function App() {
       if (!posAddress || posAddress.length !== 42 || !provider) return
       setIsSyncing(true)
       try {
+        // Verify contract exists before querying
+        const code = await provider.getCode(posAddress)
+        if (code === '0x' || code === '0x0') {
+          setIsSyncing(false)
+          return // Contract not deployed yet
+        }
+        
         const contract = new ethers.Contract(posAddress, PoSABI, provider)
         
         // Chat
@@ -7694,6 +7899,13 @@ function App() {
       }
       
       try {
+          // Verify contract exists
+          const code = await provider.getCode(posAddress);
+          if (code === '0x' || code === '0x0') {
+              setStatusMsg("❌ Contract not deployed. Is the instructor's node running?");
+              return false;
+          }
+          
           setStatusMsg("📤 Sending message...");
           
           // Use the user's wallet to send the message (so sender is correctly recorded)
@@ -7731,7 +7943,8 @@ function App() {
   // "I am Here" Button - joins the class by sending a message
   const broadcastPresence = async () => {
       // Pass message directly to avoid React state race condition
-      const success = await sendChatMessage("👋 Joined the class!");
+      const nickname = myNickname ? ` [NICK:${myNickname}]` : "";
+      const success = await sendChatMessage(`👋 Joined the class!${nickname}`);
       if (success) {
           // Force immediate refresh of validators list
           setTimeout(() => {
@@ -7740,6 +7953,50 @@ function App() {
           }, 500);
       }
   }
+  
+  // Set and broadcast nickname
+  const saveNickname = async (newNickname) => {
+    const trimmed = newNickname.trim().slice(0, 20); // Max 20 chars
+    if (!trimmed) return;
+    
+    setMyNickname(trimmed);
+    localStorage.setItem("my_nickname", trimmed);
+    setEditingNickname(false);
+    
+    // Also save to local nicknames map for own address
+    if (wallet.address) {
+      setNicknames(prev => {
+        const updated = { ...prev, [wallet.address.toLowerCase()]: trimmed };
+        localStorage.setItem("classmate_nicknames", JSON.stringify(updated));
+        return updated;
+      });
+    }
+    
+    // Broadcast to blockchain if connected
+    if (wallet.signer && posAddress) {
+      try {
+        const success = await sendChatMessage(`📛 Set nickname: ${trimmed} [NICK:${trimmed}]`);
+        if (success) {
+          setStatusMsg(`✅ Nickname "${trimmed}" saved & broadcast!`);
+          setTimeout(() => setStatusMsg(""), 3000);
+        }
+      } catch (err) {
+        console.error("Failed to broadcast nickname:", err);
+        // Still saved locally, just not broadcast
+        setStatusMsg(`✅ Nickname saved locally`);
+        setTimeout(() => setStatusMsg(""), 2000);
+      }
+    }
+  };
+  
+  // Helper to get display name for an address
+  const getDisplayName = (address) => {
+    if (!address) return "Unknown";
+    const lowerAddr = address.toLowerCase();
+    const nickname = nicknames[lowerAddr];
+    const shortAddr = `${address.slice(0,6)}...${address.slice(-4)}`;
+    return nickname ? `${nickname} (${shortAddr})` : shortAddr;
+  };
 
   const copyAddress = (addr) => {
       navigator.clipboard.writeText(addr)
@@ -7776,6 +8033,22 @@ function App() {
         // Update messages (only if we have messages)
         if (data.messages && data.messages.length > 0) {
           setMessages(data.messages);
+          
+          // Parse messages for nickname announcements (format: [NICK:NickName])
+          const newNicknames = {};
+          data.messages.forEach(msg => {
+            const nickMatch = msg.text.match(/\[NICK:([^\]]+)\]/);
+            if (nickMatch) {
+              newNicknames[msg.sender.toLowerCase()] = nickMatch[1].trim();
+            }
+          });
+          if (Object.keys(newNicknames).length > 0) {
+            setNicknames(prev => {
+              const merged = { ...prev, ...newNicknames };
+              localStorage.setItem("classmate_nicknames", JSON.stringify(merged));
+              return merged;
+            });
+          }
         }
         
         // Update validators list (merge with existing, don't replace with empty)
@@ -7805,7 +8078,7 @@ function App() {
 
 
   // Compute current mode from view
-  const currentMode = ['intro', 'concepts', 'explore', 'learn', 'sim'].includes(view) 
+  const currentMode = ['intro', 'concepts', 'explore', 'sim'].includes(view) 
     ? 'learning' 
     : view === 'live' 
       ? 'live' 
@@ -7817,7 +8090,7 @@ function App() {
     <div className="app-layout">
         {/* NAVIGATION SIDEBAR */}
         <aside className="nav-sidebar">
-            <h1>Web3 Lab</h1>
+            <h1>Ethereum Trainer</h1>
             
             {/* ============= MODE SWITCHER (TOP-LEVEL TABS) ============= */}
             <div style={{
@@ -7940,11 +8213,8 @@ function App() {
                         <button className={`roadmap-step ${view === 'explore' ? 'active' : ''} ${trail.explore ? 'done' : ''} ${!unlocks.explore ? 'locked' : ''}`} onClick={() => requestView('explore')}>
                             <span>3</span> Explore
                         </button>
-                        <button className={`roadmap-step ${view === 'learn' ? 'active' : ''} ${!unlocks.learn ? 'locked' : ''}`} onClick={() => requestView('learn')}>
-                            <span>4</span> Learn
-                        </button>
                         <button className={`roadmap-step ${view === 'sim' ? 'active' : ''} ${!unlocks.sim ? 'locked' : ''}`} onClick={() => requestView('sim')}>
-                            <span>5</span> Practice
+                            <span>4</span> Practice
                         </button>
                     </div>
                     {navHint && <p className="nav-hint">{navHint}</p>}
@@ -8023,16 +8293,107 @@ function App() {
                     <div className="roster-panel" style={{flex: 1}}>
                         <h3>👥 Classmates ({validators.filter(v => v && typeof v === 'string').length})</h3>
                         <p className="roster-hint">Click to copy/send</p>
+                        
+                        {/* Your Nickname Section */}
+                        {wallet.address && (
+                          <div style={{
+                            padding: '0.75rem',
+                            background: 'rgba(139, 92, 246, 0.15)',
+                            borderRadius: '0.5rem',
+                            marginBottom: '0.75rem',
+                            border: '1px solid rgba(139, 92, 246, 0.3)'
+                          }}>
+                            <div style={{fontSize: '0.75rem', color: '#a78bfa', marginBottom: '0.5rem'}}>
+                              📛 Your Nickname
+                            </div>
+                            {editingNickname ? (
+                              <div style={{display: 'flex', gap: '0.5rem'}}>
+                                <input
+                                  type="text"
+                                  value={nicknameInput}
+                                  onChange={e => setNicknameInput(e.target.value)}
+                                  onKeyDown={e => e.key === 'Enter' && saveNickname(nicknameInput)}
+                                  placeholder="Enter nickname..."
+                                  maxLength={20}
+                                  autoFocus
+                                  style={{
+                                    flex: 1,
+                                    padding: '0.4rem',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid #8b5cf6',
+                                    borderRadius: '0.25rem',
+                                    color: '#f8fafc',
+                                    fontSize: '0.85rem'
+                                  }}
+                                />
+                                <button
+                                  onClick={() => saveNickname(nicknameInput)}
+                                  style={{
+                                    padding: '0.4rem 0.6rem',
+                                    background: '#8b5cf6',
+                                    border: 'none',
+                                    borderRadius: '0.25rem',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem'
+                                  }}
+                                >✓</button>
+                                <button
+                                  onClick={() => { setEditingNickname(false); setNicknameInput(myNickname); }}
+                                  style={{
+                                    padding: '0.4rem 0.6rem',
+                                    background: 'rgba(255,255,255,0.1)',
+                                    border: 'none',
+                                    borderRadius: '0.25rem',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem'
+                                  }}
+                                >✕</button>
+                              </div>
+                            ) : (
+                              <div 
+                                onClick={() => { setNicknameInput(myNickname); setEditingNickname(true); }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  cursor: 'pointer',
+                                  padding: '0.4rem',
+                                  background: 'rgba(0,0,0,0.2)',
+                                  borderRadius: '0.25rem'
+                                }}
+                              >
+                                <span style={{color: myNickname ? '#f8fafc' : '#64748b', fontWeight: myNickname ? '600' : '400'}}>
+                                  {myNickname || 'Click to set nickname...'}
+                                </span>
+                                <span style={{marginLeft: 'auto', fontSize: '0.7rem', color: '#64748b'}}>✏️</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
                         <ul>
-                            {validators.filter(v => v && typeof v === 'string').map(v => (
-                                <li key={v} onClick={() => copyAddress(v)} title="Click to Copy Address">
-                                    <div className="avatar" style={{background: `#${v.slice(2,8)}`}}></div>
-                                    <div className="roster-item-content">
-                                        <span>{v.slice(0,6)}...{v.slice(-4)}</span>
-                                        {v === wallet.address && <span className="you-badge">(You)</span>}
-                                    </div>
-                                </li>
-                            ))}
+                            {validators.filter(v => v && typeof v === 'string').map(v => {
+                                const nickname = nicknames[v.toLowerCase()];
+                                const isYou = v === wallet.address;
+                                return (
+                                  <li key={v} onClick={() => copyAddress(v)} title={`Click to Copy: ${v}`}>
+                                      <div className="avatar" style={{background: `#${v.slice(2,8)}`}}>
+                                        {nickname ? nickname[0].toUpperCase() : ''}
+                                      </div>
+                                      <div className="roster-item-content">
+                                          {nickname && (
+                                            <span style={{fontWeight: '600', color: '#f8fafc'}}>{nickname}</span>
+                                          )}
+                                          <span style={{fontSize: nickname ? '0.75rem' : '0.9rem', color: nickname ? '#94a3b8' : '#f8fafc'}}>
+                                            {v.slice(0,6)}...{v.slice(-4)}
+                                          </span>
+                                          {isYou && <span className="you-badge">(You)</span>}
+                                      </div>
+                                  </li>
+                                );
+                            })}
                         </ul>
                         {!validators.includes(wallet.address) && wallet.address && (
                             <button 
@@ -8195,6 +8556,44 @@ function App() {
                     )}
                 </div>
             )}
+            
+            {/* Reset Session Button - Always visible at bottom */}
+            <div style={{
+                marginTop: 'auto',
+                padding: '1rem',
+                borderTop: '1px solid rgba(255,255,255,0.1)'
+            }}>
+                <button
+                    onClick={resetSession}
+                    style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        background: 'transparent',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        borderRadius: '0.5rem',
+                        color: '#94a3b8',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+                        e.currentTarget.style.color = '#f87171';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                        e.currentTarget.style.color = '#94a3b8';
+                    }}
+                >
+                    🔄 Reset My Session
+                </button>
+            </div>
         </aside>
 
         {/* MAIN CONTENT AREA */}
@@ -8391,7 +8790,7 @@ function App() {
                             }}>📚</div>
                             <div>
                                 <h2 style={{margin: 0, fontSize: '1.4rem', color: '#f8fafc'}}>Course Modules</h2>
-                                <p style={{margin: 0, fontSize: '0.9rem', color: '#94a3b8'}}>5 modules • Progressive learning path</p>
+                                <p style={{margin: 0, fontSize: '0.9rem', color: '#94a3b8'}}>4 modules • Progressive learning path</p>
                             </div>
                         </div>
                         
@@ -8399,9 +8798,8 @@ function App() {
                             {[
                                 {num: 1, title: 'Core Concepts', desc: 'Wallets, Gas, Blocks, Consensus Mechanisms', time: '10 min', icon: '🧱', view: 'concepts'},
                                 {num: 2, title: 'Deep Dive', desc: 'Staking, Validators, Slashing, DeFi Economics', time: '15 min', icon: '🛰', view: 'explore'},
-                                {num: 3, title: 'Comparison', desc: 'Proof-of-Work vs Proof-of-Stake Analysis', time: '8 min', icon: '⚖️', view: 'learn'},
-                                {num: 4, title: 'Simulation', desc: 'Interactive Validator Selection Algorithm', time: '10 min', icon: '🎮', view: 'sim'},
-                                {num: 5, title: 'Live Network', desc: 'Real Transactions, Staking, Rewards', time: '15 min', icon: '🌐', view: 'live'}
+                                {num: 3, title: 'Simulation', desc: 'Interactive Validator Selection Algorithm', time: '10 min', icon: '🎮', view: 'sim'},
+                                {num: 4, title: 'Live Network', desc: 'Real Transactions, Staking, Rewards', time: '15 min', icon: '🌐', view: 'live'}
                             ].map((mod, idx) => (
                                 <div 
                                     key={idx} 
@@ -8769,28 +9167,11 @@ function App() {
                     exploreProgress={exploreProgress}
                     setExploreProgress={setExploreProgress}
                     onBack={() => setView('concepts')}
-                    onContinue={() => { saveTrail({ ...trail, explore: true }); setView('learn'); }}
+                    onContinue={() => { saveTrail({ ...trail, explore: true }); setView('sim'); }}
                 />
             )}
 
-            {/* 3. LEARNING VIEW */}
-            {view === 'learn' && (
-                <div className="learn-container">
-                    <h2>Module 1: Blockchain Basics</h2>
-                    <div className="slides-grid">
-                        {LESSONS.map(l => (
-                            <div key={l.id} className="card slide-card">
-                                {l.content}
-                            </div>
-                        ))}
-                    </div>
-                    <button className="primary-btn next-btn" onClick={() => setView('sim')}>
-                        Start Practice Lab 👉
-                    </button>
-                </div>
-            )}
-
-            {/* 2. SIMULATION VIEW */}
+            {/* SIMULATION VIEW - Practice PoS concepts */}
             {view === 'sim' && (
                 <PoSValidatorSim onComplete={() => setView('live')} />
             )}
@@ -9183,6 +9564,11 @@ function App() {
                                             <button
                                                 onClick={async () => {
                                                     try {
+                                                        const code = await provider.getCode(posAddress);
+                                                        if (code === '0x' || code === '0x0') {
+                                                            setStatusMsg("❌ Contract not deployed");
+                                                            return;
+                                                        }
                                                         setStatusMsg('📝 Submitting attestation...');
                                                         const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
                                                         const tx = await contract.attest();
@@ -9340,15 +9726,37 @@ function App() {
                                             return setStatusMsg("⚠️ Insufficient balance");
                                         }
                                         try {
+                                            const code = await provider.getCode(posAddress);
+                                            if (code === '0x' || code === '0x0') {
+                                                return setStatusMsg("❌ Contract not deployed. Is the instructor's node running?");
+                                            }
                                             setStatusMsg(`Staking ${stakeAmount} ETH...`);
                                             const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
                                             const tx = await contract.stake({ value: ethers.parseEther(stakeAmount) });
-                                            await tx.wait();
+                                            const receipt = await tx.wait();
                                             setStatusMsg(`✅ Successfully staked ${stakeAmount} ETH!`);
+                                            
+                                            // Add to transaction history
+                                            setTxHistory(prev => [{
+                                              hash: tx.hash,
+                                              from: wallet.address,
+                                              to: posAddress,
+                                              value: stakeAmount,
+                                              blockNumber: receipt.blockNumber,
+                                              timestamp: Math.floor(Date.now() / 1000),
+                                              type: 'sent',
+                                              label: 'Stake'
+                                            }, ...prev].slice(0, 20));
+                                            
+                                            // Update balance
+                                            const bal = await provider.getBalance(wallet.address);
+                                            setWallet(prev => ({ ...prev, balance: ethers.formatEther(bal) }));
+                                            
                                             syncBlockchainData();
                                             setTimeout(() => setStatusMsg(""), 3000);
                                         } catch (e) {
                                             setStatusMsg("Staking failed: " + (e.message || "Unknown error"));
+                                            setTimeout(() => setStatusMsg(""), 5000);
                                         }
                                     }}
                                     style={{
@@ -9366,167 +9774,169 @@ function App() {
                                 </button>
                                 {/* Two-Step Withdrawal Process */}
                                 {!withdrawalRequested ? (
-                                    <button 
-                                        onClick={async () => {
-                                            if (!posAddress || !wallet.signer) return setStatusMsg("Connect wallet first");
-                                            if (parseFloat(myStake.amount) === 0) return setStatusMsg("No stake to withdraw");
-                                            
-                                            // Check minimum stake duration
-                                            if (myStake.minStakeDuration > 0) {
-                                                return setStatusMsg(`⏳ Must wait ${myStake.minStakeDuration}s more (min stake duration)`);
-                                            }
-                                            
-                                            try {
-                                                setStatusMsg("📝 Requesting withdrawal (starts 60s unbonding)...");
-                                                const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
-                                                const tx = await contract.requestWithdrawal();
-                                                await tx.wait();
-                                                setStatusMsg("✅ Withdrawal requested! Wait 60 seconds to complete.");
-                                                setWithdrawalRequested(true);
-                                                syncBlockchainData();
-                                            } catch (e) {
-                                                const reason = e.reason || e.message || "Unknown error";
-                                                setStatusMsg("❌ Request failed: " + reason);
-                                            }
-                                        }}
-                                        disabled={parseFloat(myStake.amount) === 0}
-                                        style={{
-                                            padding: '1rem',
-                                            background: parseFloat(myStake.amount) === 0 ? '#374151' : 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.5rem',
-                                            fontSize: '1rem',
-                                            fontWeight: 'bold',
-                                            cursor: parseFloat(myStake.amount) === 0 ? 'not-allowed' : 'pointer'
-                                        }}
-                                    >
-                                        ⏳ Request Withdrawal (Start Unbonding)
-                                    </button>
-                                ) : (
-                                    <div style={{display: 'flex', gap: '0.5rem'}}>
+                                    <>
+                                        {/* Show lock time if applicable */}
+                                        {parseFloat(myStake.amount) > 0 && myStake.minStakeDuration > 0 && (
+                                            <div style={{
+                                                padding: '0.75rem',
+                                                background: 'rgba(251, 191, 36, 0.2)',
+                                                border: '1px solid rgba(251, 191, 36, 0.4)',
+                                                borderRadius: '0.5rem',
+                                                textAlign: 'center',
+                                                fontSize: '0.9rem',
+                                                color: '#fbbf24'
+                                            }}>
+                                                ⏳ Stake locked: {myStake.minStakeDuration}s remaining
+                                            </div>
+                                        )}
                                         <button 
                                             onClick={async () => {
-                                                if (!posAddress || !wallet.signer) return setStatusMsg("Connect wallet first");
-                                                
-                                                if (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) {
-                                                    return setStatusMsg(`⏳ Wait ${myStake.unbondingTime}s more to withdraw`);
+                                                console.log("[Withdrawal] Button clicked, myStake:", myStake);
+                                                if (!posAddress || !wallet.signer) {
+                                                    setStatusMsg("⚠️ Connect wallet first");
+                                                    return;
                                                 }
-                                                
+                                                if (parseFloat(myStake.amount) === 0) {
+                                                    setStatusMsg("⚠️ No stake to withdraw - stake some ETH first!");
+                                                    return;
+                                                }
+                                                if (myStake.minStakeDuration > 0) {
+                                                    setStatusMsg(`⏳ Must wait ${myStake.minStakeDuration}s more (min stake duration)`);
+                                                    return;
+                                                }
                                                 try {
-                                                    setStatusMsg("💸 Completing withdrawal...");
+                                                    const code = await provider.getCode(posAddress);
+                                                    if (code === '0x' || code === '0x0') {
+                                                        setStatusMsg("❌ Contract not deployed");
+                                                        return;
+                                                    }
+                                                    setStatusMsg("📝 Requesting withdrawal...");
                                                     const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
-                                                    const tx = await contract.withdraw();
+                                                    const tx = await contract.requestWithdrawal();
                                                     await tx.wait();
-                                                    setStatusMsg("✅ Withdrew stake + rewards!");
-                                                    setWithdrawalRequested(false);
+                                                    setStatusMsg("✅ Withdrawal requested! 60s unbonding started.");
+                                                    setWithdrawalRequested(true);
                                                     syncBlockchainData();
-                                                    setTimeout(() => setStatusMsg(""), 3000);
+                                                    setTimeout(() => setStatusMsg(""), 5000);
                                                 } catch (e) {
-                                                    const reason = e.reason || e.message || "Unknown error";
-                                                    setStatusMsg("❌ Withdraw failed: " + reason);
+                                                    console.error("[Withdrawal] Error:", e);
+                                                    setStatusMsg("❌ Request failed: " + (e.reason || e.message || "Unknown error"));
+                                                    setTimeout(() => setStatusMsg(""), 5000);
                                                 }
                                             }}
-                                            disabled={myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999}
+                                            disabled={parseFloat(myStake.amount) === 0 || myStake.minStakeDuration > 0}
                                             style={{
-                                                flex: 1,
                                                 padding: '1rem',
-                                                background: (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) 
+                                                background: (parseFloat(myStake.amount) === 0 || myStake.minStakeDuration > 0) 
                                                     ? '#374151' 
-                                                    : 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                    : 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)',
                                                 color: 'white',
                                                 border: 'none',
                                                 borderRadius: '0.5rem',
                                                 fontSize: '1rem',
                                                 fontWeight: 'bold',
-                                                cursor: (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) ? 'not-allowed' : 'pointer'
+                                                cursor: (parseFloat(myStake.amount) === 0 || myStake.minStakeDuration > 0) ? 'not-allowed' : 'pointer',
+                                                opacity: (parseFloat(myStake.amount) === 0 || myStake.minStakeDuration > 0) ? 0.6 : 1
                                             }}
                                         >
-                                            {(myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) 
-                                                ? `⏳ ${myStake.unbondingTime}s remaining` 
-                                                : '💸 Complete Withdrawal'}
+                                            {parseFloat(myStake.amount) === 0 
+                                                ? '⏳ Stake ETH first'
+                                                : myStake.minStakeDuration > 0 
+                                                    ? `⏳ Wait ${myStake.minStakeDuration}s`
+                                                    : '⏳ Request Withdrawal'}
                                         </button>
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    setStatusMsg("❌ Cancelling withdrawal...");
-                                                    const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
-                                                    const tx = await contract.cancelWithdrawal();
-                                                    await tx.wait();
-                                                    setStatusMsg("✅ Withdrawal cancelled");
-                                                    setWithdrawalRequested(false);
-                                                    syncBlockchainData();
-                                                } catch (e) {
-                                                    setStatusMsg("❌ Cancel failed: " + (e.reason || e.message));
-                                                }
-                                            }}
-                                            style={{
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Unbonding Progress */}
+                                        {myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999 && (
+                                            <div style={{
                                                 padding: '1rem',
-                                                background: '#64748b',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '0.5rem',
-                                                fontSize: '0.85rem',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
+                                                background: 'rgba(59, 130, 246, 0.15)',
+                                                border: '2px solid rgba(59, 130, 246, 0.5)',
+                                                borderRadius: '0.75rem',
+                                                textAlign: 'center'
+                                            }}>
+                                                <div style={{fontSize: '0.85rem', color: '#94a3b8'}}>🔄 UNBONDING</div>
+                                                <div style={{fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6', fontFamily: 'monospace'}}>
+                                                    {myStake.unbondingTime}s
+                                                </div>
+                                                <div style={{marginTop: '0.75rem', height: '8px', background: 'rgba(30, 41, 59, 0.8)', borderRadius: '4px', overflow: 'hidden'}}>
+                                                    <div style={{
+                                                        width: `${Math.max(0, 100 - (myStake.unbondingTime / 60 * 100))}%`,
+                                                        height: '100%',
+                                                        background: 'linear-gradient(90deg, #3b82f6, #60a5fa)',
+                                                        transition: 'width 1s linear'
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div style={{display: 'flex', gap: '0.5rem'}}>
+                                            <button 
+                                                onClick={async () => {
+                                                    if (!posAddress || !wallet.signer) return setStatusMsg("Connect wallet first");
+                                                    if (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) {
+                                                        return setStatusMsg(`⏳ Wait ${myStake.unbondingTime}s more`);
+                                                    }
+                                                    try {
+                                                        const code = await provider.getCode(posAddress);
+                                                        if (code === '0x' || code === '0x0') return setStatusMsg("❌ Contract not deployed");
+                                                        setStatusMsg("💸 Completing withdrawal...");
+                                                        const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+                                                        const tx = await contract.withdraw();
+                                                        await tx.wait();
+                                                        setStatusMsg("✅ Withdrew stake + rewards!");
+                                                        setWithdrawalRequested(false);
+                                                        syncBlockchainData();
+                                                        setTimeout(() => setStatusMsg(""), 3000);
+                                                    } catch (e) {
+                                                        setStatusMsg("❌ Withdraw failed: " + (e.reason || e.message || "Unknown error"));
+                                                    }
+                                                }}
+                                                disabled={myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999}
+                                                style={{
+                                                    flex: 1,
+                                                    padding: '1rem',
+                                                    background: (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) 
+                                                        ? '#374151' 
+                                                        : 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '0.5rem',
+                                                    fontSize: '1rem',
+                                                    fontWeight: 'bold',
+                                                    cursor: (myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                {(myStake.unbondingTime > 0 && myStake.unbondingTime < 9999999999) 
+                                                    ? `⏳ ${myStake.unbondingTime}s remaining` 
+                                                    : '💸 Complete Withdrawal'}
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        const code = await provider.getCode(posAddress);
+                                                        if (code === '0x' || code === '0x0') return setStatusMsg("❌ Contract not deployed");
+                                                        setStatusMsg("Cancelling...");
+                                                        const contract = new ethers.Contract(posAddress, PoSABI, wallet.signer);
+                                                        const tx = await contract.cancelWithdrawal();
+                                                        await tx.wait();
+                                                        setStatusMsg("✅ Withdrawal cancelled");
+                                                        setWithdrawalRequested(false);
+                                                        syncBlockchainData();
+                                                    } catch (e) {
+                                                        setStatusMsg("❌ Cancel failed: " + (e.reason || e.message));
+                                                    }
+                                                }}
+                                                style={{padding: '1rem', background: '#64748b', color: 'white', border: 'none', borderRadius: '0.5rem', fontSize: '0.85rem', cursor: 'pointer'}}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                             
-                            <div style={{marginTop: '15px', fontSize: '13px'}}>
-                                <button 
-                                    style={{
-                                        fontSize: '14px',
-                                        padding: '10px 15px',
-                                        width: '100%',
-                                        background: '#3b82f6',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '0.5rem',
-                                        cursor: 'pointer',
-                                        fontWeight: 'bold'
-                                    }}
-                                    onClick={async () => {
-                                        if (!posAddress || posAddress.length !== 42) {
-                                            setStatusMsg("⚠️ Please enter a valid contract address first");
-                                            return;
-                                        }
-                                        if (!provider) {
-                                            setStatusMsg("⚠️ Not connected to blockchain");
-                                            return;
-                                        }
-                                        if (!wallet.address) {
-                                            setStatusMsg("⚠️ No wallet connected");
-                                            return;
-                                        }
-                                        
-                                        setStatusMsg("🔍 Checking your stake...");
-                                        
-                                        try {
-                                            const contract = new ethers.Contract(posAddress, PoSABI, provider);
-                                            const stake = await contract.stakes(wallet.address);
-                                            const reward = await contract.calculateReward(wallet.address);
-                                            
-                                            const stakeETH = ethers.formatEther(stake);
-                                            const rewardETH = ethers.formatEther(reward);
-                                            
-                                            if (parseFloat(stakeETH) === 0) {
-                                                setStatusMsg("💡 You haven't staked any ETH yet. Click 'Stake 1 ETH' to become a validator!");
-                                            } else {
-                                                setStatusMsg(`✅ Your stake: ${parseFloat(stakeETH).toFixed(4)} ETH | Pending rewards: ${parseFloat(rewardETH).toFixed(6)} ETH`);
-                                            }
-                                        } catch (e) {
-                                            console.error("Stake check error:", e);
-                                            setStatusMsg(`❌ Error: ${e.message || "Could not fetch stake info"}`);
-                                        }
-                                    }}
-                                >
-                                    📊 Check My Stake & Rewards
-                                </button>
-                            </div>
                         </section>
 
                         {/* Contract Config */}
@@ -9611,10 +10021,12 @@ function App() {
                                                     </div>
                                                     <div>
                                                         <div style={{fontWeight: 'bold', color: '#f8fafc'}}>
-                                                            {tx.type === 'sent' ? 'Sent' : 'Received'}
+                                                            {tx.label || (tx.type === 'sent' ? 'Sent' : 'Received')}
                                                         </div>
                                                         <div style={{fontSize: '0.85rem', color: '#94a3b8', fontFamily: 'monospace'}}>
-                                                            {tx.type === 'sent' ? `To: ${tx.to.slice(0,6)}...${tx.to.slice(-4)}` : `From: ${tx.from.slice(0,6)}...${tx.from.slice(-4)}`}
+                                                            {tx.type === 'sent' 
+                                                              ? `To: ${tx.to?.slice(0,6)}...${tx.to?.slice(-4)}` 
+                                                              : `From: ${tx.from?.slice(0,6)}...${tx.from?.slice(-4)}`}
                                                         </div>
                                                         <div style={{fontSize: '0.75rem', color: '#64748b'}}>
                                                             Block #{tx.blockNumber} • {new Date(tx.timestamp * 1000).toLocaleString()}
@@ -9660,27 +10072,61 @@ function App() {
                         <section className="card full-width">
                             <h3>💬 Class Chat</h3>
                             <div className="chat-window">
-                                {messages.map((msg, i) => (
-                                    <div key={i} className={`msg ${msg.sender === wallet.address ? 'my-msg' : ''}`}>
-                                        <div className="msg-header">
-                                            <span className="sender-name" onClick={() => {setRecipient(msg.sender); copyAddress(msg.sender)}}>
-                                                {msg.sender.slice(0,6)}
-                                            </span>
-                                            <span className="time">{new Date(msg.timestamp * 1000).toLocaleTimeString()}</span>
-                                        </div>
-                                        {msg.text}
+                                {messages.length === 0 ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '100%',
+                                        color: '#64748b',
+                                        textAlign: 'center',
+                                        gap: '0.5rem'
+                                    }}>
+                                        <span style={{fontSize: '2rem'}}>💬</span>
+                                        <span>No messages yet</span>
+                                        <span style={{fontSize: '0.8rem', color: '#475569'}}>
+                                            Be the first to say hello!
+                                        </span>
                                     </div>
-                                ))}
+                                ) : (
+                                    messages.map((msg, i) => (
+                                        <div key={i} className={`msg ${msg.sender === wallet.address ? 'my-msg' : ''}`}>
+                                            <div className="msg-header">
+                                                <span className="sender-name" onClick={() => {setRecipient(msg.sender); copyAddress(msg.sender)}}>
+                                                    {msg.sender.slice(0,6)}
+                                                </span>
+                                                <span className="time">{new Date(msg.timestamp * 1000).toLocaleTimeString()}</span>
+                                            </div>
+                                            {msg.text}
+                                        </div>
+                                    ))
+                                )}
                             </div>
                             <div className="input-group">
                                 <input 
                                     placeholder="Type message..."
                                     value={chatInput}
                                     onChange={e => setChatInput(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && sendChatMessage()}
+                                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendChatMessage()}
+                                    disabled={!wallet.signer}
                                 />
-                                <button onClick={sendChatMessage}>Post</button>
+                                <button 
+                                    onClick={() => sendChatMessage()}
+                                    disabled={!wallet.signer || !chatInput.trim()}
+                                    style={{
+                                        opacity: (!wallet.signer || !chatInput.trim()) ? 0.5 : 1,
+                                        cursor: (!wallet.signer || !chatInput.trim()) ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    Post
+                                </button>
                             </div>
+                            {!wallet.signer && (
+                                <p style={{fontSize: '0.8rem', color: '#f59e0b', margin: '0.5rem 0 0 0'}}>
+                                    ⚠️ Wallet loading... please wait
+                                </p>
+                            )}
                         </section>
                     </div>
                     
@@ -9758,7 +10204,20 @@ function App() {
                         )}
                     </div>
                     
-                    <p className="status-footer">{statusMsg}</p>
+                    {statusMsg && (
+                        <div className="status-footer" style={{
+                            background: statusMsg.includes('❌') ? 'rgba(239, 68, 68, 0.2)' : 
+                                       statusMsg.includes('✅') ? 'rgba(34, 197, 94, 0.2)' :
+                                       statusMsg.includes('⚠️') ? 'rgba(251, 191, 36, 0.2)' :
+                                       'rgba(59, 130, 246, 0.2)',
+                            borderColor: statusMsg.includes('❌') ? 'rgba(239, 68, 68, 0.4)' : 
+                                        statusMsg.includes('✅') ? 'rgba(34, 197, 94, 0.4)' :
+                                        statusMsg.includes('⚠️') ? 'rgba(251, 191, 36, 0.4)' :
+                                        'rgba(59, 130, 246, 0.4)'
+                        }}>
+                            {statusMsg}
+                        </div>
+                    )}
                 </div>
             )}
             

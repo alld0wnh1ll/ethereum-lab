@@ -43,6 +43,11 @@ async function main() {
   console.log(`   - Simulate block proposals`);
   console.log(`   - Check missed attestations`);
   console.log(`\n📣 Share this contract address with students: ${pos.target}`);
+  
+  // Write contract address to file for easy access
+  const fs = require('fs');
+  fs.writeFileSync('CONTRACT_ADDRESS.txt', pos.target + '\n');
+  console.log(`\n📝 Contract address saved to CONTRACT_ADDRESS.txt`);
 }
 
 main().catch((error) => {

@@ -253,7 +253,7 @@ function App() {
     <div className="app-layout">
       {/* NAVIGATION SIDEBAR */}
       <aside className="nav-sidebar">
-        <h1>Web3 Lab</h1>
+        <h1>Ethereum Trainer</h1>
         <nav>
           <div className="learning-roadmap">
             <button 
