@@ -42,7 +42,7 @@ export function IntroView({ onNext }) {
         <div className="intro-card">
           <h3 style={{marginBottom: '1rem'}}>🎓 What Makes This Lab Special</h3>
           <ul style={{fontSize: '0.95rem', lineHeight: '1.6'}}>
-            <li><strong>Real Protocol:</strong> Actual Ethereum node (Hardhat), not a toy</li>
+            <li><strong>Real Protocol:</strong> Actual Ethereum node, not a toy</li>
             <li><strong>Safe Environment:</strong> Test ETH has no real-world value</li>
             <li><strong>Hands-On:</strong> You'll stake, transact, and validate</li>
             <li><strong>Collaborative:</strong> See classmates' transactions in real-time</li>
@@ -50,7 +50,7 @@ export function IntroView({ onNext }) {
           
           <h3 style={{marginTop: '1.5rem', marginBottom: '0.75rem'}}>📋 Instructor Checklist</h3>
           <ul style={{fontSize: '0.9rem'}}>
-            <li>✅ Hardhat node running (port 8545)</li>
+            <li>✅ Blockchain node running (port 8545)</li>
             <li>✅ PoS contract deployed</li>
             <li>✅ Faucet funded with test ETH</li>
             <li>✅ RPC endpoint accessible (local/ngrok)</li>

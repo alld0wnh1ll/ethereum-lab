@@ -1,12 +1,26 @@
 # Ethereum Immersive Trainer - Docker Compose
 # Default configuration for INSTRUCTOR mode
 #
-# Usage:
+# ============================================
+# QUICK START:
+# ============================================
 #   docker-compose up --build
 #
-# For student mode, use: docker-compose -f docker-compose.student.yml up
-
-version: '3.8'
+# Then open: http://localhost:5173
+#
+# ============================================
+# STUDENT MODE:
+# ============================================
+#   docker-compose -f docker-compose.student.yml up --build
+#
+# ============================================
+# SHARE WITH STUDENTS:
+# ============================================
+#   1. Find your IP: hostname -I (Linux) or ipconfig (Windows)
+#   2. Share with students:
+#      - RPC URL: http://<your-ip>:8545
+#      - Frontend: http://<your-ip>:5173
+#
 
 services:
   ethereum-trainer:
@@ -24,12 +38,22 @@ services:
     volumes:
       # Persist blockchain data between restarts
       - blockchain-data:/app/.hardhat
+      # Persist student contracts
+      - student-contracts:/app/contracts/student
     restart: unless-stopped
     networks:
       - ethereum-net
+    # Resource limits (optional, uncomment if needed)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 4G
 
 volumes:
   blockchain-data:
+    driver: local
+  student-contracts:
     driver: local
 
 networks:

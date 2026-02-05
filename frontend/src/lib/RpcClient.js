@@ -6,13 +6,13 @@
  * "bank" account used for classroom faucet operations.
  * 
  * ⚠️ CLASSROOM USE ONLY ⚠️
- * The bank private key is a well-known Hardhat test account.
+ * The bank private key is a well-known test account.
  * NEVER use this pattern with real funds or on mainnet.
  */
 
 import { ethers } from 'ethers';
 
-// CLASSROOM ONLY - Hardhat Account #0 (public test key)
+// CLASSROOM ONLY - Account #0 (public test key)
 // This key is publicly known and used only for test environments
 const BANK_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 

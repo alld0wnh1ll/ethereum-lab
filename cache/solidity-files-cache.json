@@ -140,6 +140,181 @@
       "artifacts": [
         "SimpleStorage"
       ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\student\\HouseSale_596405.sol": {
+      "lastModificationDate": 1770307622178,
+      "contentHash": "c8e1f0d4a3b4ed7309637fc04c2f7588",
+      "sourceName": "contracts/student/HouseSale_596405.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "HouseSale"
+      ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\student\\HouseSale_976000.sol": {
+      "lastModificationDate": 1770307985766,
+      "contentHash": "c8e1f0d4a3b4ed7309637fc04c2f7588",
+      "sourceName": "contracts/student/HouseSale_976000.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "HouseSale"
+      ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\student\\ClassroomVote_768160.sol": {
+      "lastModificationDate": 1770313771037,
+      "contentHash": "bff083f6002502030b4c3e8abb810d92",
+      "sourceName": "contracts/student/ClassroomVote_768160.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ClassroomVote"
+      ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\student\\ClassroomVote_413789.sol": {
+      "lastModificationDate": 1770314415711,
+      "contentHash": "bff083f6002502030b4c3e8abb810d92",
+      "sourceName": "contracts/student/ClassroomVote_413789.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ClassroomVote"
+      ]
+    },
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\student\\ClassroomVote_084348.sol": {
+      "lastModificationDate": 1770315088096,
+      "contentHash": "bff083f6002502030b4c3e8abb810d92",
+      "sourceName": "contracts/student/ClassroomVote_084348.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ClassroomVote"
+      ]
     }
   }
 }

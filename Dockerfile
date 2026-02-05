@@ -16,11 +16,21 @@ RUN npm ci
 COPY frontend/ ./
 
 # Build frontend for production
-# Note: We use a dynamic base path so it works in both modes
 RUN npm run build
 
 # ============================================
-# Stage 2: Production Image
+# Stage 2: Build CLI Labs
+# ============================================
+FROM node:20-alpine AS cli-builder
+
+WORKDIR /app/scripts/cli-labs/standalone
+
+# Copy CLI labs package files
+COPY scripts/cli-labs/standalone/package*.json ./
+RUN npm ci --only=production
+
+# ============================================
+# Stage 3: Production Image
 # ============================================
 FROM node:20-alpine
 
@@ -29,29 +39,34 @@ LABEL description="Interactive blockchain training environment"
 
 WORKDIR /app
 
-# Install curl for health checks and serve for static files
+# Install curl for health checks, bash for scripts
 RUN apk add --no-cache curl bash
 
 # Copy blockchain dependencies (needed for instructor mode)
+# Use --ignore-scripts to skip postinstall (frontend is built separately)
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --ignore-scripts
 
 # Copy blockchain contracts and scripts
 COPY contracts/ ./contracts/
 COPY scripts/ ./scripts/
 COPY hardhat.config.js ./
 
-# Copy built frontend
+# Copy CLI labs with pre-installed dependencies
+COPY --from=cli-builder /app/scripts/cli-labs/standalone/node_modules ./scripts/cli-labs/standalone/node_modules
+
+# Copy built frontend from builder stage
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 # Install serve for static file hosting
 RUN npm install -g serve
 
 # Create directories for runtime data
-RUN mkdir -p /app/data
+RUN mkdir -p /app/data /app/contracts/student
 
-# Copy startup scripts
+# Copy startup scripts and configs
 COPY docker-entrypoint.sh /usr/local/bin/
+COPY instructor-config.json student-config.json ./
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Environment variables

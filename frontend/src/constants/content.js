@@ -40,7 +40,7 @@ export const INTRO_SECTIONS = [
   {
     title: "👥 Classroom Setup",
     bullets: [
-      "Instructor runs a local Ethereum node (Hardhat) with deployed smart contracts",
+      "Instructor runs a local Ethereum node with deployed smart contracts",
       "Students connect via web browser—no installation required",
       "Everyone shares the same blockchain producing blocks every ~12 seconds",
       "All transactions are real (but using test ETH with no real-world value)"
@@ -115,251 +115,286 @@ export const CONCEPT_CARDS = [
   }
 ];
 
-// --- EXPLORATION MISSIONS ---
+// --- BLOCKCHAIN FORENSICS MISSIONS ---
 export const EXPLORE_MISSIONS = [
   {
-    title: "🔗 Understanding Staking",
-    category: "Proof of Stake",
-    action: "What is staking and why do validators lock up their ETH?",
+    title: "🔍 Address Analysis",
+    category: "Forensics",
+    action: "Determine if an address is a wallet (EOA) or smart contract, check balances, and review activity",
     details: [
-      "Staking means depositing ETH as collateral to become a validator",
-      "Minimum stake on Ethereum: 32 ETH (our lab uses 1 ETH for learning)",
-      "Staked ETH is locked—you can't spend it while validating",
-      "Purpose: Creates 'skin in the game' so validators act honestly",
-      "Honest validators earn rewards; dishonest ones get slashed"
+      "Every Ethereum address is either an EOA (Externally Owned Account - a wallet) or a Contract",
+      "EOAs have empty code (0x), while contracts have bytecode deployed",
+      "Balance tells you how much ETH the address currently holds",
+      "Transaction count (nonce) shows how many transactions were sent FROM this address"
     ],
-    miniLab: 'staking-rewards',
+    instructions: {
+      title: "How to Analyze an Address",
+      steps: [
+        {
+          label: "1. Store the target address",
+          code: "ctx.target = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'"
+        },
+        {
+          label: "2. Check if it's a contract or wallet",
+          code: "ctx.code = await provider.getCode(ctx.target)\nconsole.log(ctx.code === '0x' ? 'Wallet (EOA)' : 'Contract')"
+        },
+        {
+          label: "3. Get the balance",
+          code: "ctx.balance = await provider.getBalance(ctx.target)\nconsole.log('Balance:', formatEth(ctx.balance), 'ETH')"
+        },
+        {
+          label: "4. Get transaction count (nonce)",
+          code: "ctx.nonce = await provider.getTransactionCount(ctx.target)\nconsole.log('Transactions sent:', ctx.nonce)"
+        }
+      ]
+    },
     quiz: {
-      question: "Why must validators stake ETH?",
+      question: "How can you tell if an address is a smart contract?",
       options: [
-        "To prove they have money",
-        "To create economic incentive for honest behavior",
-        "To pay for electricity",
-        "Just for fun"
+        "Check if it has a balance",
+        "Look at the code - contracts have bytecode, wallets return '0x'",
+        "Contracts always start with '0xC'",
+        "Check the transaction count"
       ],
       correct: 1
     }
   },
   {
-    title: "👮 Validator Responsibilities",
-    category: "Network Security",
-    action: "Learn what validators do to keep Ethereum secure",
+    title: "📜 Transaction Tracing",
+    category: "Forensics",
+    action: "Look up transactions by hash, analyze execution receipts, and calculate fees",
     details: [
-      "Propose new blocks when selected by the algorithm",
-      "Verify (attest to) blocks proposed by other validators",
-      "Must be online 24/7 with stable internet",
-      "Run honest software—no cheating or double-signing",
-      "Earn transaction fees + block rewards for good work"
+      "Every transaction has a unique hash - a 66-character identifier",
+      "The receipt shows whether the transaction succeeded or failed",
+      "Gas used × gas price = total transaction fee paid",
+      "Logs/events in the receipt reveal what the transaction actually did"
     ],
-    miniLab: 'validator-probability',
+    instructions: {
+      title: "How to Trace a Transaction",
+      steps: [
+        {
+          label: "1. Get a transaction by its hash",
+          code: "ctx.hash = '0x...'  // Replace with real hash\nctx.tx = await provider.getTransaction(ctx.hash)"
+        },
+        {
+          label: "2. View transaction details",
+          code: "console.log('From:', ctx.tx.from)\nconsole.log('To:', ctx.tx.to)\nconsole.log('Value:', formatEth(ctx.tx.value), 'ETH')\nconsole.log('Block:', ctx.tx.blockNumber)"
+        },
+        {
+          label: "3. Get the execution receipt",
+          code: "ctx.receipt = await provider.getTransactionReceipt(ctx.hash)\nconsole.log('Status:', ctx.receipt.status === 1 ? 'Success' : 'Failed')"
+        },
+        {
+          label: "4. Calculate the fee paid",
+          code: "ctx.fee = ctx.receipt.gasUsed * ctx.receipt.gasPrice\nconsole.log('Fee paid:', formatEth(ctx.fee), 'ETH')"
+        }
+      ]
+    },
     quiz: {
-      question: "What happens if a validator goes offline?",
+      question: "What does a transaction receipt tell you?",
       options: [
-        "Nothing, they just miss rewards",
-        "They lose all their staked ETH",
-        "They get small penalties (inactivity leak)",
-        "They get a warning email"
+        "Only the sender's address",
+        "The predicted future price of ETH",
+        "Execution status, gas used, and event logs",
+        "The sender's private key"
       ],
       correct: 2
     }
   },
   {
-    title: "⚔️ Slashing: The Penalty System",
-    category: "Network Security",
-    action: "Understand how Ethereum punishes bad actors",
+    title: "🧱 Block Analysis",
+    category: "Forensics",
+    action: "Scan blocks for transactions, find high-value transfers, and build timelines",
     details: [
-      "Slashing = Burning (destroying) a validator's staked ETH",
-      "Triggers: Double-signing blocks, or proposing contradictory data",
-      "Penalty: Lose up to 100% of staked ETH (usually ~1 ETH minimum)",
-      "Purpose: Make attacks extremely expensive (would need 51% of stake)",
-      "Slashed validators are forcibly ejected from the network"
+      "Blocks are batches of transactions produced every ~12 seconds",
+      "Each block has a number (height), timestamp, and list of transactions",
+      "Block hash links to the previous block, creating an immutable chain",
+      "Scanning blocks lets you find all transactions in a time range"
     ],
-    miniLab: 'slashing-penalty',
+    instructions: {
+      title: "How to Analyze Blocks",
+      steps: [
+        {
+          label: "1. Get the current block number",
+          code: "ctx.latest = await provider.getBlockNumber()\nconsole.log('Current block:', ctx.latest)"
+        },
+        {
+          label: "2. Get block details",
+          code: "ctx.block = await provider.getBlock(ctx.latest)\nconsole.log('Timestamp:', toDate(ctx.block.timestamp))\nconsole.log('Tx count:', ctx.block.transactions.length)"
+        },
+        {
+          label: "3. Get block WITH full transaction data",
+          code: "ctx.block = await provider.getBlock(ctx.latest, true)\nctx.block.prefetchedTransactions.forEach(tx => {\n  console.log(formatAddr(tx.from), '→', formatAddr(tx.to), ':', formatEth(tx.value), 'ETH')\n})"
+        },
+        {
+          label: "4. Scan multiple blocks for high-value transactions",
+          code: "ctx.threshold = ethers.parseEther('1')\nctx.highValue = []\nfor (let i = 0; i <= ctx.latest; i++) {\n  const b = await provider.getBlock(i, true)\n  b.prefetchedTransactions?.filter(tx => tx.value >= ctx.threshold)\n    .forEach(tx => ctx.highValue.push({block: i, value: formatEth(tx.value)}))\n}\nconsole.table(ctx.highValue)"
+        }
+      ]
+    },
     quiz: {
-      question: "What is slashing designed to prevent?",
+      question: "Why do investigators scan multiple blocks?",
       options: [
-        "Validators taking vacations",
-        "Network attacks and dishonest behavior",
-        "Too many validators joining",
-        "Gas fees from rising"
+        "To make the blockchain run faster",
+        "To find transactions over a time period or matching criteria",
+        "To delete old transactions",
+        "Blocks can only be read once"
       ],
       correct: 1
     }
   },
   {
-    title: "🏦 DeFi: Staking Beyond Validation",
-    category: "DeFi Applications",
-    action: "Explore how staking powers decentralized finance",
+    title: "📡 Event Queries",
+    category: "Forensics",
+    action: "Track staking events, monitor messages, and detect slashing incidents",
     details: [
-      "Liquid Staking: Deposit ETH, get stETH token, still earn rewards",
-      "Example: Lido, Rocket Pool let you stake without 32 ETH",
-      "Yield Farming: Stake tokens in protocols to earn interest",
-      "Governance: Staked tokens often give voting rights in DAOs",
-      "Risk: Smart contract bugs or protocol failures"
+      "Smart contracts emit 'events' when important things happen",
+      "Events are indexed and searchable - much faster than scanning all transactions",
+      "You can filter events by address, topic, or block range",
+      "Events reveal contract activity even when transaction data is complex"
     ],
+    instructions: {
+      title: "How to Query Events",
+      steps: [
+        {
+          label: "1. Get all staking events",
+          code: "ctx.events = await contract.queryFilter('Staked', 0)\nconsole.log('Found', ctx.events.length, 'staking events')"
+        },
+        {
+          label: "2. View event details",
+          code: "ctx.events.forEach(e => {\n  console.log('Block', e.blockNumber + ':', formatAddr(e.args[0]), 'staked', formatEth(e.args[1]), 'ETH')\n})"
+        },
+        {
+          label: "3. Filter events by a specific address",
+          code: "ctx.target = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'\nctx.filtered = await contract.queryFilter(contract.filters.Staked(ctx.target))\nconsole.log('Address staked', ctx.filtered.length, 'times')"
+        },
+        {
+          label: "4. Check for slashing events",
+          code: "ctx.slashed = await contract.queryFilter('Slashed', 0)\nif (ctx.slashed.length === 0) {\n  console.log('No slashing events found')\n} else {\n  ctx.slashed.forEach(e => console.log('SLASHED:', formatAddr(e.args[0]), '-', e.args[2]))\n}"
+        }
+      ]
+    },
     quiz: {
-      question: "What is 'liquid staking'?",
+      question: "Why are events useful for blockchain forensics?",
       options: [
-        "Staking water molecules",
-        "Getting a tradable token while your ETH is staked",
-        "Staking in a pool of liquid",
-        "Only available for liquids"
+        "They make transactions faster",
+        "They're indexed and searchable, revealing contract activity",
+        "They store private keys",
+        "Events are stored off-chain"
       ],
       correct: 1
     }
   },
   {
-    title: "💰 Staking Rewards Economics",
-    category: "Economics",
-    action: "Calculate the incentives for running a validator",
+    title: "💰 Money Flow Analysis",
+    category: "Forensics",
+    action: "Track transfers between addresses, calculate totals, and identify patterns",
     details: [
-      "Base reward: ~4-5% annual return on staked ETH",
-      "Higher when fewer validators are online",
-      "Transaction fees (tips) add extra income",
-      "MEV (Maximal Extractable Value): Advanced validators earn more",
-      "Costs: Hardware, electricity, internet, downtime risks"
+      "Following the money is the core of blockchain forensics",
+      "You can track every ETH transfer between any two addresses",
+      "Aggregate statistics reveal patterns (total moved, frequency, amounts)",
+      "This technique is used to trace stolen funds, analyze protocols, and more"
     ],
+    instructions: {
+      title: "How to Track Money Flow",
+      steps: [
+        {
+          label: "1. Set source and destination addresses",
+          code: "ctx.from = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'\nctx.to = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'"
+        },
+        {
+          label: "2. Find all transfers between them",
+          code: "ctx.transfers = []\nctx.latest = await provider.getBlockNumber()\nfor (let i = 0; i <= ctx.latest; i++) {\n  const b = await provider.getBlock(i, true)\n  b.prefetchedTransactions?.filter(tx => \n    tx.from.toLowerCase() === ctx.from.toLowerCase() && \n    tx.to?.toLowerCase() === ctx.to.toLowerCase()\n  ).forEach(tx => ctx.transfers.push({block: i, value: tx.value, hash: tx.hash}))\n}"
+        },
+        {
+          label: "3. Calculate total transferred",
+          code: "ctx.total = ctx.transfers.reduce((sum, t) => sum + t.value, 0n)\nconsole.log('Total transfers:', ctx.transfers.length)\nconsole.log('Total value:', formatEth(ctx.total), 'ETH')"
+        },
+        {
+          label: "4. Display the transfer history",
+          code: "ctx.transfers.forEach((t, i) => {\n  console.log(`${i+1}. Block ${t.block}: ${formatEth(t.value)} ETH`)\n  console.log(`   Hash: ${t.hash}`)\n})"
+        }
+      ]
+    },
     quiz: {
-      question: "Why would someone run a validator?",
+      question: "What is the primary goal of money flow analysis?",
       options: [
-        "Just to help the network (no rewards)",
-        "Earn passive income on their ETH",
-        "Get free NFTs",
-        "To mine Bitcoin"
+        "To predict future prices",
+        "To track where funds came from and went to",
+        "To create new ETH",
+        "To speed up transactions"
       ],
       correct: 1
     }
-  },
-  {
-    title: "🎯 Real-World Scenario: Attack Cost",
-    category: "Network Security",
-    action: "Calculate how expensive it is to attack Ethereum",
-    details: [
-      "To control 51% of validators, need 51% of all staked ETH",
-      "Currently ~34 million ETH staked on Ethereum",
-      "51% attack needs: ~17 million ETH",
-      "At $3,000/ETH: $51 BILLION dollars needed",
-      "And you'd LOSE it all via slashing if caught!",
-      "Compare to Bitcoin: Rent mining hardware temporarily for attack"
-    ],
-    miniLab: 'attack-cost',
-    quiz: {
-      question: "Why is PoS more secure than PoW against attacks?",
-      options: [
-        "It's faster",
-        "Attackers must BUY and LOSE massive amounts of ETH",
-        "It uses less electricity",
-        "Smart contracts protect it"
-      ],
-      correct: 1
-    }
-  },
-  {
-    title: "🔄 Observe the Chain",
-    category: "Hands-On",
-    action: "Watch how blocks are linked together in a real blockchain.",
-    details: [
-      "Ethereum produces a block every ~12 seconds",
-      "Each block contains many transactions",
-      "Block number = blockchain 'height'",
-      "Each block references the previous block's hash",
-      "This creates an immutable chain - changing one block breaks all following blocks"
-    ],
-    miniLab: 'blockchain-visualizer'
-  },
-  {
-    title: "🔑 Decode an Address",
-    category: "Hands-On",
-    action: "Learn how Ethereum addresses work and practice reading them.",
-    details: [
-      "Addresses start with '0x' (hexadecimal notation)",
-      "42 characters total (0x + 40 hex digits)",
-      "Derived from your public key using Keccak-256 hash",
-      "Shorthand: 0x1234...5678 helps in class/chat",
-      "Your address = your public identity on Ethereum"
-    ],
-    miniLab: 'address-decoder'
   }
 ];
 
 // --- LESSON DATA (content rendered in component) ---
 export const LESSONS = [
   {
-    id: "intro",
-    title: "What is Ethereum?",
-    contentType: "intro"
+    id: "forensics-intro",
+    title: "What is Blockchain Forensics?",
+    contentType: "forensics-intro"
   },
   {
-    id: "account",
-    title: "Accounts & Keys",
-    contentType: "account"
+    id: "addresses",
+    title: "Understanding Addresses",
+    contentType: "addresses"
   },
   {
-    id: "tx",
-    title: "Transactions & Gas",
-    contentType: "tx"
+    id: "transactions",
+    title: "Reading Transactions",
+    contentType: "transactions"
   },
   {
-    id: "consensus",
-    title: "Consensus: PoW vs PoS",
-    contentType: "consensus"
+    id: "tools",
+    title: "Your Forensics Toolkit",
+    contentType: "tools"
   }
 ];
 
 // Helper to get lesson content component by type
 export function getLessonContent(contentType) {
   const contentMap = {
-    intro: {
-      title: "The World Computer",
-      description: "Ethereum is not just money. It is a global, shared computer that no one owns.",
+    'forensics-intro': {
+      title: "Blockchain Forensics",
+      description: "Blockchain forensics is the practice of analyzing on-chain data to trace funds, investigate suspicious activity, and understand what happened.",
       points: [
-        { label: "Decentralized", text: "Runs on thousands of computers (Nodes) at once." },
-        { label: "Immutable", text: "Once data is written, it cannot be erased." },
-        { label: "Programmable", text: "You can write code (Smart Contracts) that runs on it." }
+        { label: "Transparent", text: "Every transaction is publicly visible on the blockchain forever." },
+        { label: "Immutable", text: "Data cannot be altered or deleted - the trail never goes cold." },
+        { label: "Traceable", text: "You can follow any address's complete history from the first transaction." }
       ]
     },
-    account: {
-      title: "Your Digital Identity",
-      description: "To use Ethereum, you need a Key Pair:",
+    addresses: {
+      title: "Two Types of Addresses",
+      description: "Every Ethereum address is either a wallet (EOA) or a smart contract:",
       concepts: [
-        { icon: "🔑", label: "Private Key", text: "Like your Password. NEVER share this. It signs transactions.", example: "bad64...91a2" },
-        { icon: "📬", label: "Public Address", text: "Like your Email. Share this to receive money.", example: "0x71C...9A21" }
+        { icon: "👤", label: "EOA (Wallet)", text: "Externally Owned Account - controlled by a private key. Has no code.", example: "provider.getCode() returns '0x'" },
+        { icon: "📄", label: "Contract", text: "Deployed code that executes automatically. Contains bytecode.", example: "provider.getCode() returns '0x6080...'" }
       ]
     },
-    tx: {
-      title: "Moving Data",
-      description: "Every time you want to change the blockchain (send money, post chat), you must send a Transaction.",
-      note: "Miners/Validators do the work to process it. You pay them a fee called Gas (in ETH)."
+    transactions: {
+      title: "Anatomy of a Transaction",
+      description: "Every transaction has key fields you can analyze:",
+      concepts: [
+        { icon: "📤", label: "from", text: "The sender's address - who initiated the transaction" },
+        { icon: "📥", label: "to", text: "The recipient's address - where funds/data went (null for contract creation)" },
+        { icon: "💰", label: "value", text: "Amount of ETH transferred (in wei - divide by 10^18 for ETH)" },
+        { icon: "📝", label: "data", text: "Input data - empty for simple transfers, contains function calls for contracts" },
+        { icon: "⛽", label: "gas", text: "Computational cost - gasUsed × gasPrice = fee paid" }
+      ]
     },
-    consensus: {
-      title: "How Does Everyone Agree?",
-      description: "Blockchains need a way for thousands of computers to agree on the 'truth' without a central authority. This is called Consensus.",
-      methods: [
-        {
-          name: "Proof of Work (PoW)",
-          icon: "⚡",
-          subtitle: "Bitcoin's Method",
-          points: [
-            "Miners compete to solve complex math puzzles",
-            "First to solve gets to add the next block",
-            "Requires massive computing power & electricity",
-            "Problem: Wasteful energy consumption"
-          ],
-          style: "default"
-        },
-        {
-          name: "Proof of Stake (PoS)",
-          icon: "🌱",
-          subtitle: "Ethereum's Method",
-          points: [
-            "Validators 'stake' their ETH as collateral",
-            "Algorithm selects validators based on stake size",
-            "Selected validator proposes the next block",
-            "Benefit: 99.95% less energy than PoW!",
-            "Security: Bad actors lose their staked ETH (slashing)"
-          ],
-          style: "highlight"
-        }
+    tools: {
+      title: "Your Forensics Toolkit",
+      description: "Key commands available in the Playground for investigation:",
+      concepts: [
+        { icon: "🔍", label: "provider.getCode(addr)", text: "Check if address is EOA or contract" },
+        { icon: "💰", label: "provider.getBalance(addr)", text: "Get current ETH balance" },
+        { icon: "📊", label: "provider.getTransactionCount(addr)", text: "Get nonce (number of txs sent)" },
+        { icon: "📜", label: "provider.getTransaction(hash)", text: "Look up transaction details by hash" },
+        { icon: "✅", label: "provider.getTransactionReceipt(hash)", text: "Get execution result and logs" },
+        { icon: "🧱", label: "provider.getBlock(num, true)", text: "Get block with full transaction data" },
+        { icon: "📡", label: "contract.queryFilter('Event', from)", text: "Search for specific events" }
       ]
     }
   };

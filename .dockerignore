@@ -1,20 +1,52 @@
+# Dependencies - will be installed fresh in container
 node_modules
 frontend/node_modules
+scripts/cli-labs/standalone/node_modules
+my-ethereum-lab
+
+# Build outputs - will be rebuilt in container
 frontend/dist
-npm-debug.log
-.git
-.gitignore
-*.md
-!README.md
-.env
-.DS_Store
-cache
-artifacts
-*.log
-.vscode
-.idea
-coverage
-.nyc_output
 dist
 build
+
+# Development files
+.git
+.gitignore
+.gitpod.yml
+.gitpod.Dockerfile
+.devcontainer
+.vscode
+.idea
+
+# Documentation (except README)
+*.md
+!README.md
+!scripts/cli-labs/standalone/README.md
+!scripts/cli-labs/standalone/CONTRACT_BUILDER_GUIDE.md
+!scripts/cli-labs/standalone/PLAYGROUND_TUTORIAL.md
+
+# Environment and secrets
+.env
+.env.*
+student-accounts.json
+
+# Cache and logs
+cache
+*.log
+npm-debug.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+coverage
+.nyc_output
+test
+
+# GitHub
+.github
+
+# Artifacts (contracts will be compiled fresh)
+artifacts
 

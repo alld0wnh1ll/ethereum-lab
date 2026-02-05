@@ -18,7 +18,6 @@ A comprehensive educational platform that teaches Ethereum, smart contracts, and
 - **Node.js** (v18 or later) - [Download](https://nodejs.org/)
 - **Git** - [Download](https://git-scm.com/)
 - **Web Browser** (Chrome, Firefox, Edge)
-- **MetaMask** (optional, for wallet interactions) - [Download](https://metamask.io/)
 
 ## 🚀 Quick Start Options
 
@@ -127,10 +126,10 @@ npm install
 ### Step 3: Start the Lab Environment
 ```bash
 # For Windows PowerShell
-.\start-lab-instructor.ps1
+.\start-lab.ps1 -Mode instructor
 
 # For remote students (via internet)
-.\start-lab-instructor.ps1 -UseNgrok
+.\start-lab.ps1 -Mode instructor -UseNgrok
 ```
 
 This automatically:
@@ -155,8 +154,8 @@ cd blockchain_web
 # Install dependencies
 npm install
 
-# Run student setup
-.\start-lab-student.ps1
+# Run student setup (Windows PowerShell)
+.\start-lab.ps1 -Mode student
 ```
 
 When prompted:
@@ -177,11 +176,11 @@ When prompted:
 - **Live Network Control**: Simulate block production and attestation
 
 ### Student Experience
-1. **Request Test ETH**: Click "💰 Request 5 ETH" to get funds
-2. **Connect Wallet**: Use MetaMask or burner wallet
+1. **Generate or Import Wallet**: Create a new wallet or import with private key
+2. **Request Test ETH**: Click "Request 5 ETH" to get funds
 3. **Stake ETH**: Lock funds to become a validator
 4. **Earn Rewards**: Participate in consensus and earn staking rewards
-5. **Interact**: Use the chat, explore mini-labs, and learn concepts
+5. **Use CLI Labs**: Run forensics analysis and build smart contracts
 
 ### Network Architecture
 ```
@@ -199,28 +198,60 @@ Everyone runs the frontend locally but connects to the instructor's blockchain!
 
 ## 🧪 Lab Exercises
 
-### Core Learning Activities
+### Web Interface (Live Mode)
 
 1. **Getting Started**
    - Request test ETH from the faucet
-   - Explore wallet functionality
+   - Generate or import your personal wallet
    - Understand gas and transaction fees
 
 2. **Proof-of-Stake Fundamentals**
    - Stake ETH to become a validator
    - Monitor real-time reward accumulation
-   - Understand capital lock-up for network security
+   - Participate in network consensus
 
-3. **Network Economics**
-   - Participate in shared staking pool
-   - Observe how individual actions affect network-wide statistics
-   - Learn about slashing penalties and validator responsibilities
+### CLI Labs (Analyst Training)
 
-4. **Interactive Mini-Labs**
-   - Blockchain Visualizer: Watch blocks being created
-   - Address Decoder: Understand Ethereum addresses
-   - Staking Calculator: Model reward scenarios
-   - Validator Simulator: Experience consensus mechanisms
+The CLI labs provide hands-on blockchain forensics training. Navigate to `scripts/cli-labs/standalone/` and run `npm start`.
+
+**5 Core Forensics Topics:**
+
+1. **Address Analysis**
+   - Determine if address is EOA or smart contract
+   - Check balances and transaction counts
+   - Review staking status and rewards
+
+2. **Transaction Tracing**
+   - Look up transactions by hash
+   - Analyze execution receipts and gas usage
+   - Decode input data
+
+3. **Block Analysis**
+   - Scan blocks for transactions
+   - Build transaction timelines
+   - Calculate totals across block ranges
+
+4. **Event Queries**
+   - Track staking events
+   - Monitor chat messages
+   - Detect slashing incidents
+
+5. **Money Flow Analysis**
+   - Track transfers between addresses
+   - Calculate total value moved
+   - Identify transaction patterns
+
+### Smart Contract Builder Lab
+
+Build and deploy your own smart contracts from templates:
+- **House/Property Sale** - Real estate escrow with roles
+- **Vehicle Title Transfer** - Ownership registry
+- **Event Tickets** - Ticket sales with check-in
+- **Voting System** - Multi-option voting
+- **Crowdfunding** - Fundraising campaigns
+- **Classroom Voting Demo** - Live class exercises
+
+See `scripts/cli-labs/standalone/CONTRACT_BUILDER_GUIDE.md` for full instructions.
 
 ## 🌐 Remote Access (Optional)
 
@@ -242,10 +273,7 @@ Students then use this URL as their RPC endpoint instead of a local IP address.
 - Verify the instructor's computer and students are on the same network
 - Check that firewall allows connections on ports 8545 and 5173
 - For remote access, ensure ngrok is pointing to port 8545 and students use the HTTPS URL
-
-**MetaMask Nonce Errors**
-- If you restart the blockchain node, students should reset MetaMask:
-  - Settings → Advanced → Clear activity tab data
+- Clear browser localStorage if using a restarted blockchain node
 
 **Frontend Won't Load**
 - Ensure all dependencies are installed: `npm install`

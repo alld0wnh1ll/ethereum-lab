@@ -8,8 +8,6 @@
 # Example:
 #   INSTRUCTOR_RPC_URL=http://192.168.1.100:8545 docker-compose -f docker-compose.student.yml up --build
 
-version: '3.8'
-
 services:
   ethereum-trainer-student:
     build:

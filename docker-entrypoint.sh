@@ -1,6 +1,13 @@
 #!/bin/bash
 set -e
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║     ETHEREUM IMMERSIVE TRAINER                             ║"
@@ -13,21 +20,42 @@ MODE="${MODE:-instructor}"
 RPC_PORT="${RPC_PORT:-8545}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
-echo "Mode: $MODE"
+echo -e "Mode: ${BLUE}$MODE${NC}"
 echo ""
+
+# Graceful shutdown handler
+cleanup() {
+    echo ""
+    echo -e "${YELLOW}Shutting down services...${NC}"
+    
+    if [ ! -z "$HARDHAT_PID" ]; then
+        kill $HARDHAT_PID 2>/dev/null || true
+    fi
+    if [ ! -z "$FRONTEND_PID" ]; then
+        kill $FRONTEND_PID 2>/dev/null || true
+    fi
+    
+    echo -e "${GREEN}✓ Services stopped${NC}"
+    exit 0
+}
+
+trap cleanup SIGTERM SIGINT
 
 # ============================================
 # INSTRUCTOR MODE
 # Runs blockchain node + deploys contracts + serves frontend
 # ============================================
 if [ "$MODE" = "instructor" ]; then
-    echo "🎓 Starting INSTRUCTOR mode..."
+    echo -e "${GREEN}🎓 Starting INSTRUCTOR mode...${NC}"
     echo "   - Blockchain node will run on port $RPC_PORT"
     echo "   - Frontend will run on port $FRONTEND_PORT"
     echo ""
     
+    # Ensure contracts directory exists
+    mkdir -p /app/contracts/student
+    
     # Start Hardhat node in background
-    echo "⛓️  Starting Hardhat blockchain node..."
+    echo -e "${BLUE}⛓️  Starting Hardhat blockchain node...${NC}"
     npx hardhat node --hostname 0.0.0.0 --port $RPC_PORT &
     HARDHAT_PID=$!
     
@@ -37,20 +65,19 @@ if [ "$MODE" = "instructor" ]; then
         if curl -s -X POST http://localhost:$RPC_PORT \
             -H "Content-Type: application/json" \
             -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' > /dev/null 2>&1; then
-            echo "   ✓ Blockchain node is ready!"
+            echo -e "   ${GREEN}✓ Blockchain node is ready!${NC}"
             break
         fi
         if [ $i -eq 30 ]; then
-            echo "   ✗ Failed to start blockchain node!"
+            echo -e "   ${RED}✗ Failed to start blockchain node!${NC}"
             exit 1
         fi
-        echo "   Attempt $i/30..."
         sleep 2
     done
     
     # Deploy contracts
     echo ""
-    echo "📜 Deploying smart contracts..."
+    echo -e "${BLUE}📜 Deploying smart contracts...${NC}"
     npx hardhat run scripts/deploy.js --network localhost
     
     # Read and export contract address
@@ -58,59 +85,83 @@ if [ "$MODE" = "instructor" ]; then
         CONTRACT_ADDRESS=$(head -1 CONTRACT_ADDRESS.txt | tr -d '\r\n')
         export CONTRACT_ADDRESS
         
-        # Also save to a web-accessible location
+        # Save to web-accessible location for auto-configuration
         mkdir -p /app/frontend/dist/api
-        echo "{\"contractAddress\":\"$CONTRACT_ADDRESS\",\"rpcUrl\":\"http://localhost:$RPC_PORT\"}" > /app/frontend/dist/api/config.json
+        
+        # Get container/host IP for external access hints
+        CONTAINER_IP=$(hostname -i 2>/dev/null || echo "localhost")
+        
+        # Create config JSON
+        cat > /app/frontend/dist/api/config.json << EOF
+{
+  "contractAddress": "$CONTRACT_ADDRESS",
+  "rpcUrl": "http://localhost:$RPC_PORT",
+  "mode": "instructor",
+  "startTime": "$(date -Iseconds)"
+}
+EOF
         echo "$CONTRACT_ADDRESS" > /app/frontend/dist/contract-address.txt
         
-        echo "   ✓ Contract deployed!"
+        echo -e "   ${GREEN}✓ Contract deployed!${NC}"
     else
-        echo "   ⚠ Warning: Could not find contract address file"
+        echo -e "   ${YELLOW}⚠ Warning: Could not find contract address file${NC}"
     fi
     
     # Start frontend server
     echo ""
-    echo "🌐 Starting frontend server..."
+    echo -e "${BLUE}🌐 Starting frontend server...${NC}"
     serve -s /app/frontend/dist -l $FRONTEND_PORT &
     FRONTEND_PID=$!
     
+    # Wait a moment for serve to start
+    sleep 2
+    
     # Print success banner
     echo ""
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║  ✓ INSTRUCTOR NODE IS RUNNING                              ║"
-    echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║                                                            ║"
-    echo "║  Blockchain RPC:    http://localhost:$RPC_PORT                  ║"
-    echo "║  Frontend:          http://localhost:$FRONTEND_PORT                  ║"
-    echo "║                                                            ║"
-    echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║  CONTRACT ADDRESS:                                         ║"
-    echo "║  $CONTRACT_ADDRESS  ║"
-    echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║                                                            ║"
-    echo "║  📋 SHARE WITH STUDENTS:                                   ║"
-    echo "║     RPC URL: http://<your-ip>:$RPC_PORT                         ║"
-    echo "║     Contract: $CONTRACT_ADDRESS  ║"
-    echo "║                                                            ║"
-    echo "║  📄 Contract address also available at:                    ║"
-    echo "║     http://localhost:$FRONTEND_PORT/contract-address.txt        ║"
-    echo "║     http://localhost:$FRONTEND_PORT/api/config.json             ║"
-    echo "║                                                            ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    echo "║                                                                ║"
+    echo -e "║  ${GREEN}✓ INSTRUCTOR NODE IS RUNNING${NC}                                ║"
+    echo "║                                                                ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║                                                                ║"
+    echo "║  LOCAL ACCESS:                                                 ║"
+    echo "║    Frontend:      http://localhost:$FRONTEND_PORT                       ║"
+    echo "║    Blockchain:    http://localhost:$RPC_PORT                        ║"
+    echo "║                                                                ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║                                                                ║"
+    echo "║  CONTRACT ADDRESS:                                             ║"
+    echo "║    $CONTRACT_ADDRESS                           ║"
+    echo "║                                                                ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    echo "║                                                                ║"
+    echo "║  📋 SHARE WITH STUDENTS:                                       ║"
+    echo "║    1. Find your IP: hostname -I (Linux) or ipconfig (Windows)  ║"
+    echo "║    2. Share:                                                   ║"
+    echo "║       - Frontend: http://<YOUR-IP>:$FRONTEND_PORT                       ║"
+    echo "║       - RPC URL:  http://<YOUR-IP>:$RPC_PORT                        ║"
+    echo "║       - Contract: $CONTRACT_ADDRESS            ║"
+    echo "║                                                                ║"
+    echo "║  📄 Auto-config endpoints:                                     ║"
+    echo "║    http://localhost:$FRONTEND_PORT/contract-address.txt             ║"
+    echo "║    http://localhost:$FRONTEND_PORT/api/config.json                  ║"
+    echo "║                                                                ║"
+    echo "╚════════════════════════════════════════════════════════════════╝"
     echo ""
-    echo "Press Ctrl+C to stop all services"
+    echo -e "${YELLOW}Press Ctrl+C to stop all services${NC}"
+    echo ""
     
 # ============================================
 # STUDENT MODE  
 # Only serves frontend, connects to instructor's blockchain
 # ============================================
 elif [ "$MODE" = "student" ]; then
-    echo "📚 Starting STUDENT mode..."
+    echo -e "${GREEN}📚 Starting STUDENT mode...${NC}"
     
     # Check for required instructor connection info
     if [ -z "$INSTRUCTOR_RPC_URL" ]; then
         echo ""
-        echo "⚠️  INSTRUCTOR_RPC_URL not set!"
+        echo -e "${YELLOW}⚠️  INSTRUCTOR_RPC_URL not set!${NC}"
         echo "   Students need to connect to instructor's blockchain."
         echo ""
         echo "   Set environment variable:"
@@ -125,33 +176,45 @@ elif [ "$MODE" = "student" ]; then
     
     # Create config for student to connect to instructor
     mkdir -p /app/frontend/dist/api
-    echo "{\"rpcUrl\":\"$INSTRUCTOR_RPC_URL\",\"contractAddress\":\"$CONTRACT_ADDRESS\",\"mode\":\"student\"}" > /app/frontend/dist/api/config.json
+    cat > /app/frontend/dist/api/config.json << EOF
+{
+  "rpcUrl": "$INSTRUCTOR_RPC_URL",
+  "contractAddress": "$CONTRACT_ADDRESS",
+  "mode": "student",
+  "startTime": "$(date -Iseconds)"
+}
+EOF
     
     # Start frontend server
-    echo "🌐 Starting frontend server..."
+    echo -e "${BLUE}🌐 Starting frontend server...${NC}"
     serve -s /app/frontend/dist -l $FRONTEND_PORT &
     FRONTEND_PID=$!
     
+    sleep 2
+    
     echo ""
     echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║  ✓ STUDENT CLIENT IS RUNNING                               ║"
+    echo "║                                                            ║"
+    echo -e "║  ${GREEN}✓ STUDENT CLIENT IS RUNNING${NC}                               ║"
+    echo "║                                                            ║"
     echo "╠════════════════════════════════════════════════════════════╣"
     echo "║                                                            ║"
-    echo "║  Frontend:          http://localhost:$FRONTEND_PORT                  ║"
-    echo "║  Instructor RPC:    $INSTRUCTOR_RPC_URL"
+    echo "║  Frontend:        http://localhost:$FRONTEND_PORT                  ║"
+    echo "║  Instructor RPC:  $INSTRUCTOR_RPC_URL"
     echo "║                                                            ║"
-    echo "║  Open browser to: http://localhost:$FRONTEND_PORT                   ║"
+    echo "║  Open browser to: http://localhost:$FRONTEND_PORT                  ║"
     echo "║  Then enter the instructor's contract address              ║"
     echo "║                                                            ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
-    echo "Press Ctrl+C to stop"
+    echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
+    echo ""
     
 else
-    echo "❌ Unknown mode: $MODE"
+    echo -e "${RED}❌ Unknown mode: $MODE${NC}"
     echo "   Valid modes: instructor, student"
     exit 1
 fi
 
-# Keep container running
+# Keep container running and wait for child processes
 wait

@@ -2,10 +2,11 @@ import { ethers } from "ethers";
 
 const LOCAL_NODE_URL = "http://127.0.0.1:8545";
 
-// Storage key for wallet persistence
+// Storage keys for wallet persistence
 const WALLET_STORAGE_KEY = "eth_lab_wallet_pk";
+const WALLET_NICKNAME_KEY = "eth_lab_wallet_nickname";
 
-// Setup provider connecting to the local Hardhat node
+// Setup provider connecting to the local blockchain node
 export const provider = new ethers.JsonRpcProvider(LOCAL_NODE_URL);
 
 // --- METAMASK CONNECTION ---
@@ -80,7 +81,7 @@ export const exportWalletKey = () => {
 }
 
 // Import wallet from private key
-export const importWallet = (privateKey) => {
+export const importWallet = (privateKey, nickname = null) => {
     try {
         // Validate the private key
         const wallet = new ethers.Wallet(privateKey);
@@ -89,11 +90,62 @@ export const importWallet = (privateKey) => {
         localStorage.setItem(WALLET_STORAGE_KEY, privateKey);
         sessionStorage.setItem("guest_sk", privateKey);
         
+        // Save nickname if provided
+        if (nickname) {
+            localStorage.setItem(WALLET_NICKNAME_KEY, nickname);
+        }
+        
         console.log("[Wallet] Imported wallet:", wallet.address);
         return { success: true, address: wallet.address };
     } catch (error) {
         console.error("[Wallet] Invalid private key:", error);
         return { success: false, error: "Invalid private key" };
+    }
+}
+
+// Get wallet nickname
+export const getWalletNickname = () => {
+    return localStorage.getItem(WALLET_NICKNAME_KEY) || 'My Wallet';
+}
+
+// Set wallet nickname
+export const setWalletNickname = (nickname) => {
+    localStorage.setItem(WALLET_NICKNAME_KEY, nickname);
+}
+
+// Generate a new wallet with optional nickname
+export const generateNewWallet = (nickname = 'My Wallet') => {
+    const wallet = ethers.Wallet.createRandom();
+    
+    // Save to storage
+    localStorage.setItem(WALLET_STORAGE_KEY, wallet.privateKey);
+    sessionStorage.setItem("guest_sk", wallet.privateKey);
+    localStorage.setItem(WALLET_NICKNAME_KEY, nickname);
+    
+    console.log("[Wallet] Generated new wallet:", wallet.address);
+    
+    return {
+        address: wallet.address,
+        privateKey: wallet.privateKey,
+        nickname: nickname
+    };
+}
+
+// Get full wallet info
+export const getWalletInfo = () => {
+    const privateKey = localStorage.getItem(WALLET_STORAGE_KEY) || 
+                       sessionStorage.getItem("guest_sk");
+    if (!privateKey) return null;
+    
+    try {
+        const wallet = new ethers.Wallet(privateKey);
+        return {
+            address: wallet.address,
+            privateKey: privateKey,
+            nickname: getWalletNickname()
+        };
+    } catch {
+        return null;
     }
 }
 

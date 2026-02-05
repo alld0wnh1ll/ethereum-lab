@@ -9,9 +9,9 @@ import { LESSONS, getLessonContent } from '../constants/content';
 export function LearnView({ onBack, onNext }) {
   return (
     <div className="learn-view">
-      <h2>📚 Learn: How Ethereum Works</h2>
+      <h2>📚 Forensics Fundamentals</h2>
       <p className="section-subtitle">
-        Understand the fundamentals of Ethereum, from accounts to consensus mechanisms.
+        Understand the building blocks of blockchain forensics before diving into investigations.
       </p>
       
       <div style={{display: 'flex', flexDirection: 'column', gap: '2rem', marginTop: '2rem'}}>
@@ -94,7 +94,7 @@ export function LearnView({ onBack, onNext }) {
       </div>
       
       <div className="concept-actions" style={{marginTop: '2rem'}}>
-        <button onClick={onBack}>← Back to Explore</button>
+        <button onClick={onBack}>← Back to Investigations</button>
         <button className="primary-btn" onClick={onNext}>
           Continue to Practice →
         </button>

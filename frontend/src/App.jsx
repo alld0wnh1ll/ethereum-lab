@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ethers } from 'ethers'
-import { connectWallet, checkNodeStatus, getGuestWallet } from './web3'
+import { connectWallet, checkNodeStatus, getGuestWallet, getWalletInfo, importWallet, generateNewWallet, setWalletNickname } from './web3'
 import PoSABI from './PoS.json'
 import { InstructorView } from './views/InstructorView'
 import { DiagnosticsView } from './views/DiagnosticsView'
 import { blockchainSync } from './lib/BlockchainSync'
+import AccountManager from './components/AccountManager'
 import './index.css'
 
-// Hardhat default private key for Account #0 (The "Bank")
+// Default private key for Account #0 (The "Bank")
 const BANK_PRIVATE_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 // ============= KM METADATA & PROVENANCE =============
@@ -510,7 +511,7 @@ const INTRO_SECTIONS = [
     {
         title: "👥 Classroom Setup",
         bullets: [
-            "Instructor runs a local Ethereum node (Hardhat) with deployed smart contracts",
+            "Instructor runs a local Ethereum node with deployed smart contracts",
             "Students connect via web browser—no installation required",
             "Everyone shares the same blockchain producing blocks every ~12 seconds",
             "All transactions are real (but using test ETH with no real-world value)"
@@ -1569,1321 +1570,329 @@ function MiniLab_AttackCost() {
 
 // --- COMPONENT: CLI LABS VIEW ---
 function CLILabsView() {
-    const [selectedLab, setSelectedLab] = useState(null);
-    const [completedSteps, setCompletedSteps] = useState({});
-    const [os, setOS] = useState('bash'); // 'bash' or 'powershell'
+    const [copiedCommand, setCopiedCommand] = useState(null);
 
-    const labs = [
-        {
-            id: 1,
-            title: "Local Blockchain Setup",
-            duration: "15 min",
-            description: "Start your own Ethereum node and explore the blockchain",
-            color: "#10b981",
-            steps: [
-                {
-                    title: "Start Hardhat Node",
-                    why: "This creates a local Ethereum blockchain on your computer. It's like running your own mini-Ethereum network!",
-                    bash: "npx hardhat node",
-                    powershell: "npx hardhat node",
-                    expectedOutput: `Started HTTP and WebSocket JSON-RPC server at http://127.0.0.1:8545/
+    const copyToClipboard = (text, id) => {
+        navigator.clipboard.writeText(text);
+        setCopiedCommand(id);
+        setTimeout(() => setCopiedCommand(null), 2000);
+    };
 
-Accounts
-========
-Account #0: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (10000 ETH)
-Private Key: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-...`,
-                    explanation: "You now have 20 pre-funded accounts, each with 10,000 test ETH. The node is listening on port 8545.",
-                    deepDive: {
-                        title: "🔬 What's Actually Happening:",
-                        points: [
-                            {
-                                icon: "⚙️",
-                                label: "EVM Instance",
-                                text: "Hardhat spins up a full Ethereum Virtual Machine - the same code that runs on mainnet. Your computer is now a validator node!"
-                            },
-                            {
-                                icon: "🌐",
-                                label: "JSON-RPC Server",
-                                text: "Port 8545 exposes an HTTP API using JSON-RPC 2.0 protocol. This is how MetaMask, web3.js, and ethers.js talk to Ethereum."
-                            },
-                            {
-                                icon: "💰",
-                                label: "Pre-funded Accounts",
-                                text: "These are deterministic accounts generated from a known mnemonic. Same mnemonic = same addresses. That's why everyone gets the same Account #0."
-                            },
-                            {
-                                icon: "🔐",
-                                label: "Private Keys Shown",
-                                text: "NEVER share private keys in production! These are test keys that everyone knows. On mainnet, your private key = your money."
-                            },
-                            {
-                                icon: "⛏️",
-                                label: "Auto-mining",
-                                text: "Hardhat auto-mines blocks when transactions arrive. Real Ethereum waits ~12 seconds. You can configure this in hardhat.config.js."
-                            }
-                        ]
-                    },
-                    whyItMatters: "Understanding how nodes work is crucial. Every Ethereum app needs to connect to a node (yours, Infura, Alchemy). This is YOUR node!"
-                },
-                {
-                    title: "Explore the Blockchain",
-                    why: "This script queries your blockchain to show blocks, transactions, and account balances.",
-                    bash: "npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost",
-                    powershell: "npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost",
-                    expectedOutput: `📊 Current Block Number: 0
+    const CodeBlock = ({ code, id, label }) => (
+        <div style={{
+            background: '#0f172a',
+            borderRadius: '0.5rem',
+            overflow: 'hidden',
+            border: '1px solid #334155',
+            marginBottom: '0.75rem'
+        }}>
+            {label && (
+                <div style={{
+                    padding: '0.5rem 1rem',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    borderBottom: '1px solid #334155',
+                    color: '#93c5fd',
+                    fontSize: '0.85rem',
+                    fontWeight: '600'
+                }}>
+                    {label}
+                </div>
+            )}
+            <div style={{display: 'flex', alignItems: 'stretch'}}>
+                <pre style={{
+                    flex: 1,
+                    margin: 0,
+                    padding: '1rem',
+                    color: '#fbbf24',
+                    fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
+                    fontSize: '0.9rem',
+                    lineHeight: '1.5',
+                    overflow: 'auto',
+                    whiteSpace: 'pre-wrap'
+                }}>{code}</pre>
+                <button
+                    onClick={() => copyToClipboard(code, id)}
+                    style={{
+                        padding: '0.5rem 1rem',
+                        background: copiedCommand === id ? '#22c55e' : '#334155',
+                        border: 'none',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        transition: 'background 0.2s'
+                    }}
+                >
+                    {copiedCommand === id ? '✓' : '📋'}
+                </button>
+            </div>
+        </div>
+    );
 
---- Block Details ---
-Hash: 0x1234...
-Transactions: 0
-Gas Used: 0
-
---- Pre-funded Accounts ---
-Account 0: 0xf39F... (10000 ETH)`,
-                    explanation: "Block 0 is the genesis block. As you send transactions, new blocks will be created every 12 seconds.",
-                    tryNext: {
-                        title: "🎯 Now Try This:",
-                        tasks: [
-                            {
-                                task: "Send a transaction between accounts",
-                                bash: `# Open Hardhat console
-npx hardhat console --network localhost
-
-# In the console, run:
-const [sender, receiver] = await ethers.getSigners();
-await sender.sendTransaction({
-  to: receiver.address,
-  value: ethers.parseEther("1.0")
-});`,
-                                powershell: `# Open Hardhat console
-npx hardhat console --network localhost
-
-# In the console, run:
-const [sender, receiver] = await ethers.getSigners();
-await sender.sendTransaction({
-  to: receiver.address,
-  value: ethers.parseEther("1.0")
-});`,
-                                result: "You just sent 1 ETH! The node will mine a new block."
-                            },
-                            {
-                                task: "Run the explore script again and watch the block number increase",
-                                bash: "npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost",
-                                powershell: "npx hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost",
-                                result: "Block number should now be 1 (or higher). Account 0's balance decreased by ~1.0 ETH + gas!"
-                            },
-                            {
-                                task: "Check a specific account's balance",
-                                bash: `# In console
-const balance = await ethers.provider.getBalance("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
-console.log(ethers.formatEther(balance), "ETH");`,
-                                powershell: `# In console
-const balance = await ethers.provider.getBalance("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
-console.log(ethers.formatEther(balance), "ETH");`,
-                                result: "You'll see the balance has changed from the original 10000 ETH."
-                            }
-                        ]
-                    }
-                },
-                {
-                    title: "Check Node Status (HTTP Request)",
-                    why: "Learn how applications communicate with Ethereum nodes using JSON-RPC protocol.",
-                    bash: `curl -X POST http://localhost:8545 \\
-  -H "Content-Type: application/json" \\
-  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'`,
-                    powershell: `Invoke-RestMethod -Uri http://localhost:8545 -Method POST -ContentType "application/json" -Body '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'`,
-                    expectedOutput: `{"jsonrpc":"2.0","id":1,"result":"0x0"}`,
-                    explanation: "The result '0x0' is hexadecimal for 0. This is how your web browser talks to the blockchain!"
-                }
-            ]
-        },
-        {
-            id: 2,
-            title: "Manual Transaction Signing",
-            duration: "20 min",
-            description: "Sign and send transactions to understand how wallets work",
-            color: "#3b82f6",
-            steps: [
-                {
-                    title: "Send ETH Between Accounts",
-                    why: "Every transaction must be signed with a private key. This proves you own the account and authorize the transfer.",
-                    bash: "npx hardhat run scripts/cli-labs/2-sign-transaction.js --network localhost",
-                    powershell: "npx hardhat run scripts/cli-labs/2-sign-transaction.js --network localhost",
-                    expectedOutput: `--- Before Transaction ---
-Sender: 10000.0 ETH
-Receiver: 10000.0 ETH
-
---- Signing & Broadcasting ---
-Transaction Hash: 0xabc123...
-✓ Confirmed in block: 1
-
---- After Transaction ---
-Sender: 9998.499958 ETH
-Receiver: 10001.5 ETH
-
---- Cost Breakdown ---
-Amount sent: 1.5 ETH
-Gas cost: 0.000042 ETH
-Total deducted: 1.500042 ETH`,
-                    explanation: "Notice the sender lost MORE than 1.5 ETH? That's because they paid gas fees. The receiver got exactly 1.5 ETH.",
-                    deepDive: {
-                        title: "🔬 Transaction Anatomy:",
-                        points: [
-                            {
-                                icon: "✍️",
-                                label: "Digital Signature",
-                                text: "Your private key creates a cryptographic signature. This proves: (1) You own the account, (2) You authorized THIS specific transaction, (3) The transaction hasn't been tampered with."
-                            },
-                            {
-                                icon: "🔢",
-                                label: "Nonce (Number Used Once)",
-                                text: "Each account has a transaction counter. Nonce prevents replay attacks - you can't copy someone's transaction and submit it again. Transactions must be processed in nonce order."
-                            },
-                            {
-                                icon: "⛽",
-                                label: "Gas Mechanics",
-                                text: "Gas limit = max gas you'll pay. Gas price = how much per unit. Simple transfers use exactly 21,000 gas. Unused gas is refunded. Higher gas price = faster inclusion."
-                            },
-                            {
-                                icon: "📝",
-                                label: "Transaction Hash",
-                                text: "The hash uniquely identifies this transaction. It's like a receipt. You can look it up on any block explorer to see its status and details."
-                            },
-                            {
-                                icon: "⏱️",
-                                label: "Confirmation",
-                                text: "Transaction goes: Signed → Broadcast → Mempool → Mined into Block → Confirmed. On Hardhat it's instant. On mainnet, wait ~12 seconds for first confirmation."
-                            }
-                        ]
-                    },
-                    whyItMatters: "Every action on Ethereum is a transaction. Sending ETH, calling contracts, deploying code - all transactions. Understanding signing, gas, and nonces is essential for building any blockchain app!"
-                },
-                {
-                    title: "Understanding the Transaction Object",
-                    why: "Transactions contain: to, value, gasLimit, nonce, and signature. Understanding these fields is crucial.",
-                    bash: "# Open Hardhat console\nnpx hardhat console --network localhost",
-                    powershell: "# Open Hardhat console\nnpx hardhat console --network localhost",
-                    expectedOutput: `Welcome to Node.js v20.18.1.
-Type ".help" for more information.
->`,
-                    explanation: "The console lets you interact with Ethereum using JavaScript. Try: await ethers.provider.getBlockNumber()",
-                    tryNext: {
-                        title: "🎯 Practice in the Console:",
-                        tasks: [
-                            {
-                                task: "Get current block number",
-                                bash: "await ethers.provider.getBlockNumber();",
-                                powershell: "await ethers.provider.getBlockNumber();",
-                                result: "Returns the latest block number (increases as transactions are mined)"
-                            },
-                            {
-                                task: "Check your balance",
-                                bash: `const [me] = await ethers.getSigners();
-const bal = await ethers.provider.getBalance(me.address);
-console.log(ethers.formatEther(bal), "ETH");`,
-                                powershell: `const [me] = await ethers.getSigners();
-const bal = await ethers.provider.getBalance(me.address);
-console.log(ethers.formatEther(bal), "ETH");`,
-                                result: "Shows your current ETH balance"
-                            },
-                            {
-                                task: "Send ETH to another account",
-                                bash: `const [me, friend] = await ethers.getSigners();
-await me.sendTransaction({
-  to: friend.address,
-  value: ethers.parseEther("0.5")
-});`,
-                                powershell: `const [me, friend] = await ethers.getSigners();
-await me.sendTransaction({
-  to: friend.address,
-  value: ethers.parseEther("0.5")
-});`,
-                                result: "Transaction sent! Check balances again to see the change."
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        {
-            id: 3,
-            title: "Smart Contract Deployment",
-            duration: "30 min",
-            description: "Deploy your own contracts and interact with them",
-            color: "#8b5cf6",
-            steps: [
-                {
-                    title: "Create SimpleStorage Contract",
-                    why: "Before deploying, you need to write the smart contract code. This is a simple contract that stores and retrieves a number.",
-                    bash: `# The contract already exists in contracts/SimpleStorage.sol
-# View it with:
-cat contracts/SimpleStorage.sol`,
-                    powershell: `# The contract already exists in contracts/SimpleStorage.sol
-# View it with:
-Get-Content contracts/SimpleStorage.sol`,
-                    expectedOutput: `// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-contract SimpleStorage {
-    uint256 private storedValue;
-    address public owner;
-    
-    event ValueChanged(uint256 oldValue, uint256 newValue, address changedBy);
-    
-    constructor() {
-        owner = msg.sender;
-    }
-    
-    function set(uint256 _value) public {
-        uint256 oldValue = storedValue;
-        storedValue = _value;
-        emit ValueChanged(oldValue, _value, msg.sender);
-    }
-    
-    function get() public view returns (uint256) {
-        return storedValue;
-    }
-}`,
-                    explanation: "This contract has a private variable (storedValue), a public variable (owner), and two functions (set/get). The event logs every change.",
-                    deepDive: {
-                        title: "🔬 Understanding the Contract:",
-                        points: [
-                            {
-                                icon: "📦",
-                                label: "State Variables",
-                                text: "storedValue and owner are stored permanently on the blockchain. Reading is free, writing costs gas."
-                            },
-                            {
-                                icon: "🔧",
-                                label: "Functions",
-                                text: "set() modifies state (costs gas). get() only reads (free). Public functions can be called by anyone."
-                            },
-                            {
-                                icon: "📡",
-                                label: "Events",
-                                text: "ValueChanged event creates a log entry on the blockchain. Apps listen to events to track what happened without storing everything in expensive contract storage."
-                            },
-                            {
-                                icon: "👤",
-                                label: "Constructor",
-                                text: "Runs once when deployed. Sets msg.sender (the deployer) as owner. This pattern is common for access control."
-                            },
-                            {
-                                icon: "🔒",
-                                label: "Immutability",
-                                text: "Once deployed, the code CANNOT be changed. If there's a bug, you must deploy a new contract. This is why testing is critical!"
-                            }
-                        ]
-                    },
-                    whyItMatters: "Smart contracts are the 'programs' that run on Ethereum. Understanding how they store data, emit events, and handle access control is fundamental to blockchain development."
-                },
-                {
-                    title: "Compile Contracts",
-                    why: "Solidity code must be compiled to EVM bytecode before deployment. This creates the ABI (interface) and bytecode.",
-                    bash: "npx hardhat compile",
-                    powershell: "npx hardhat compile",
-                    expectedOutput: `Compiled 3 Solidity files successfully (evm target: paris).`,
-                    explanation: "Check artifacts/contracts/ to see the compiled JSON files with ABI and bytecode.",
-                    deepDive: {
-                        title: "🔬 The Compilation Process:",
-                        points: [
-                            {
-                                icon: "📝",
-                                label: "Solidity → Bytecode",
-                                text: "The Solidity compiler (solc) converts human-readable code into EVM bytecode - the machine code that runs on Ethereum."
-                            },
-                            {
-                                icon: "🔌",
-                                label: "ABI (Application Binary Interface)",
-                                text: "The ABI is like an instruction manual. It tells your app how to call functions, what parameters they need, and what they return. Without the ABI, you can't interact with the contract!"
-                            },
-                            {
-                                icon: "🎯",
-                                label: "Artifacts Folder",
-                                text: "artifacts/contracts/SimpleStorage.sol/SimpleStorage.json contains both ABI and bytecode. Your frontend imports this to interact with deployed contracts."
-                            },
-                            {
-                                icon: "⚡",
-                                label: "EVM Target",
-                                text: "'paris' is the Ethereum hard fork version. Different versions have different opcodes (instructions). Hardhat uses the latest stable version."
-                            }
-                        ]
-                    },
-                    whyItMatters: "Compilation is the bridge between human code and machine code. The ABI is what makes blockchain apps possible - it's how your React app talks to Solidity contracts!"
-                },
-                {
-                    title: "Deploy SimpleStorage Contract",
-                    why: "Deployment is just a special transaction that creates a new contract on the blockchain.",
-                    bash: "npx hardhat run scripts/cli-labs/3-deploy-contract.js --network localhost",
-                    powershell: "npx hardhat run scripts/cli-labs/3-deploy-contract.js --network localhost",
-                    expectedOutput: `--- Deploying Contract ---
-Transaction Hash: 0x789def...
-✓ Contract deployed!
-Contract Address: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-
---- Deployment Details ---
-Gas Used: 463893
-Deployment Cost: 0.000463893 ETH`,
-                    explanation: "The contract now lives at that address forever. Anyone can interact with it using the ABI.",
-                    deepDive: {
-                        title: "🔬 What Happens During Deployment:",
-                        points: [
-                            {
-                                icon: "📤",
-                                label: "Special Transaction",
-                                text: "Deployment is a transaction with NO 'to' address. The bytecode goes in the 'data' field. The EVM creates a new contract and assigns it an address."
-                            },
-                            {
-                                icon: "🏠",
-                                label: "Contract Address",
-                                text: "The address is deterministic - calculated from your address + your nonce. Same deployer + same nonce = same address (on different chains)."
-                            },
-                            {
-                                icon: "⛽",
-                                label: "Gas Cost",
-                                text: "Deployment is expensive! ~463k gas for SimpleStorage. Complex contracts like Uniswap cost millions of gas. That's why gas optimization matters."
-                            },
-                            {
-                                icon: "💾",
-                                label: "Permanent Storage",
-                                text: "The contract's bytecode is stored on EVERY Ethereum node worldwide. That's ~8,600 computers storing your code forever!"
-                            },
-                            {
-                                icon: "🔄",
-                                label: "Constructor Execution",
-                                text: "The constructor runs once during deployment. It set owner = msg.sender (you). After deployment, the constructor code is discarded."
-                            }
-                        ]
-                    },
-                    whyItMatters: "Deployment is irreversible and expensive. In production, you'd deploy to a testnet first, audit the code, then deploy to mainnet. One bug = permanent vulnerability!"
-                },
-                {
-                    title: "Open Hardhat Console",
-                    why: "The console gives you an interactive JavaScript environment connected to your blockchain. Perfect for testing!",
-                    bash: "npx hardhat console --network localhost",
-                    powershell: "npx hardhat console --network localhost",
-                    expectedOutput: `Welcome to Node.js v20.18.1.
-Type ".help" for more information.
->`,
-                    explanation: "You're now in an interactive JavaScript REPL connected to your blockchain. Ethers.js is pre-loaded!",
-                    tryNext: {
-                        title: "🎯 Deploy and Interact in Console:",
-                        tasks: [
-                            {
-                                task: "Deploy SimpleStorage contract",
-                                bash: `const SimpleStorage = await ethers.getContractFactory("SimpleStorage");
-const contract = await SimpleStorage.deploy();
-await contract.waitForDeployment();
-const address = await contract.getAddress();
-console.log("Contract deployed at:", address);`,
-                                powershell: `const SimpleStorage = await ethers.getContractFactory("SimpleStorage");
-const contract = await SimpleStorage.deploy();
-await contract.waitForDeployment();
-const address = await contract.getAddress();
-console.log("Contract deployed at:", address);`,
-                                result: "Contract is now live on the blockchain! Copy the address for next steps."
-                            },
-                            {
-                                task: "Set a value in the contract",
-                                bash: `await contract.set(42);
-console.log("Value set to 42!");`,
-                                powershell: `await contract.set(42);
-console.log("Value set to 42!");`,
-                                result: "This creates a transaction that changes the contract's state. Costs gas!"
-                            },
-                            {
-                                task: "Read the value back (free!)",
-                                bash: `const value = await contract.get();
-console.log("Stored value:", value.toString());`,
-                                powershell: `const value = await contract.get();
-console.log("Stored value:", value.toString());`,
-                                result: "Returns 42. Reading is free - no transaction needed!"
-                            },
-                            {
-                                task: "Check who owns the contract",
-                                bash: `const owner = await contract.owner();
-const [me] = await ethers.getSigners();
-console.log("Owner:", owner);
-console.log("Am I the owner?", owner === me.address);`,
-                                powershell: `const owner = await contract.owner();
-const [me] = await ethers.getSigners();
-console.log("Owner:", owner);
-console.log("Am I the owner?", owner === me.address);`,
-                                result: "Should return true - you deployed it, so you own it!"
-                            }
-                        ]
-                    }
-                },
-                {
-                    title: "Listen for Contract Events",
-                    why: "Events are how smart contracts communicate what happened. They're stored on-chain and can be queried anytime.",
-                    bash: `# In console (after deploying and using the contract)
-const filter = contract.filters.ValueChanged();
-const events = await contract.queryFilter(filter);
-events.forEach(e => {
-  console.log("Old:", e.args.oldValue.toString());
-  console.log("New:", e.args.newValue.toString());
-  console.log("Changed by:", e.args.changedBy);
-});`,
-                    powershell: `# In console (after deploying and using the contract)
-const filter = contract.filters.ValueChanged();
-const events = await contract.queryFilter(filter);
-events.forEach(e => {
-  console.log("Old:", e.args.oldValue.toString());
-  console.log("New:", e.args.newValue.toString());
-  console.log("Changed by:", e.args.changedBy);
-});`,
-                    expectedOutput: `Old: 0
-New: 42
-Changed by: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`,
-                    explanation: "Events are like a permanent log. Apps use them to track what happened in contracts without storing everything in expensive contract storage.",
-                    tryNext: {
-                        title: "🎯 Practice Event Queries:",
-                        tasks: [
-                            {
-                                task: "Filter events by a specific address",
-                                bash: `const [me] = await ethers.getSigners();
-const filter = contract.filters.ValueChanged(null, null, me.address);
-const myEvents = await contract.queryFilter(filter);
-console.log("Changes I made:", myEvents.length);`,
-                                powershell: `const [me] = await ethers.getSigners();
-const filter = contract.filters.ValueChanged(null, null, me.address);
-const myEvents = await contract.queryFilter(filter);
-console.log("Changes I made:", myEvents.length);`,
-                                result: "Shows only the ValueChanged events where YOU were the one who changed it"
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        {
-            id: 4,
-            title: "Blockchain Data Queries",
-            duration: "25 min",
-            description: "Query blocks, transactions, balances, and gas prices",
-            color: "#ec4899",
-            steps: [
-                {
-                    title: "Run Data Query Script",
-                    why: "Learn how to extract information from the blockchain - essential for building apps and analyzing network activity.",
-                    bash: "npx hardhat run scripts/cli-labs/4-query-data.js --network localhost",
-                    powershell: "npx hardhat run scripts/cli-labs/4-query-data.js --network localhost",
-                    expectedOutput: `--- Network Information ---
-Chain ID: 31337
-Latest Block: 5
-
---- Gas Price Data ---
-Gas Price: 1.5 Gwei
-
---- Recent Blocks ---
-Block 1: 1 txs | 11:30:15 AM
-Block 2: 2 txs | 11:30:27 AM
-Block 3: 0 txs | 11:30:39 AM
-
---- Account Analysis ---
-Balance: 9998.5 ETH
-Transaction Count (Nonce): 2`,
-                    explanation: "Nonce = number of transactions sent. Each transaction increments it. This prevents replay attacks.",
-                    deepDive: {
-                        title: "🔬 Blockchain Data Structure:",
-                        points: [
-                            {
-                                icon: "🆔",
-                                label: "Chain ID",
-                                text: "31337 is Hardhat's default. Mainnet = 1, Sepolia testnet = 11155111. Chain ID prevents replay attacks across different networks."
-                            },
-                            {
-                                icon: "📊",
-                                label: "Block Height",
-                                text: "Block number = total blocks since genesis. Ethereum mainnet is at ~20 million blocks. Each block is ~12 seconds, so you can calculate the blockchain's age!"
-                            },
-                            {
-                                icon: "⛽",
-                                label: "Gas Price (Gwei)",
-                                text: "1 Gwei = 0.000000001 ETH. Gas prices fluctuate based on network demand. High demand = high prices. Check etherscan.io/gastracker for real-time mainnet prices."
-                            },
-                            {
-                                icon: "🔢",
-                                label: "Nonce Tracking",
-                                text: "Your nonce = how many transactions you've sent. If you send tx with nonce 5 before nonce 4 confirms, it will wait. Nonces must be sequential!"
-                            },
-                            {
-                                icon: "💾",
-                                label: "State vs History",
-                                text: "Ethereum stores current state (balances, contract storage) and full history (all transactions, all blocks). Archive nodes store everything; full nodes prune old data."
-                            }
-                        ]
-                    },
-                    whyItMatters: "Querying blockchain data is how you build dashboards, wallets, and analytics tools. Understanding what data is available and how to get it efficiently is key to app performance!"
-                },
-                {
-                    title: "Query Specific Block",
-                    why: "Blocks are the fundamental unit of blockchain. Understanding their structure is key.",
-                    bash: `# In console
-const block = await ethers.provider.getBlock(1);
-console.log(block);`,
-                    powershell: `# In console
-const block = await ethers.provider.getBlock(1);
-console.log(block);`,
-                    expectedOutput: `{
-  hash: '0x...',
-  parentHash: '0x...',
-  number: 1,
-  timestamp: 1700000000,
-  transactions: ['0x...'],
-  gasUsed: 21000n,
-  ...
-}`,
-                    explanation: "Every block contains: hash (fingerprint), parentHash (link to previous), transactions, and metadata.",
-                    tryNext: {
-                        title: "🎯 Explore Block Data:",
-                        tasks: [
-                            {
-                                task: "Get a transaction from the block",
-                                bash: `const block = await ethers.provider.getBlock(1);
-const txHash = block.transactions[0];
-const tx = await ethers.provider.getTransaction(txHash);
-console.log("From:", tx.from);
-console.log("To:", tx.to);
-console.log("Value:", ethers.formatEther(tx.value), "ETH");`,
-                                powershell: `const block = await ethers.provider.getBlock(1);
-const txHash = block.transactions[0];
-const tx = await ethers.provider.getTransaction(txHash);
-console.log("From:", tx.from);
-console.log("To:", tx.to);
-console.log("Value:", ethers.formatEther(tx.value), "ETH");`,
-                                result: "Shows details of the first transaction in block 1"
-                            },
-                            {
-                                task: "Calculate time between blocks",
-                                bash: `const block1 = await ethers.provider.getBlock(1);
-const block2 = await ethers.provider.getBlock(2);
-const timeDiff = block2.timestamp - block1.timestamp;
-console.log("Time between blocks:", timeDiff, "seconds");`,
-                                powershell: `const block1 = await ethers.provider.getBlock(1);
-const block2 = await ethers.provider.getBlock(2);
-const timeDiff = block2.timestamp - block1.timestamp;
-console.log("Time between blocks:", timeDiff, "seconds");`,
-                                result: "On Hardhat, blocks are instant. On real Ethereum, ~12 seconds."
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-        {
-            id: 5,
-            title: "PoS Validator Simulation",
-            duration: "30 min",
-            description: "Simulate Ethereum's validator selection algorithm",
-            color: "#f59e0b",
-            steps: [
-                {
-                    title: "Stake ETH to Become a Validator",
-                    why: "Before running the simulation, you need validators in the pool. Staking locks your ETH as collateral.",
-                    bash: `# In console
-const contract = await ethers.getContractAt("PoSSimulator", "0xe7f1...");
-await contract.stake({ value: ethers.parseEther("2.0") });`,
-                    powershell: `# In console
-const contract = await ethers.getContractAt("PoSSimulator", "0xe7f1...");
-await contract.stake({ value: ethers.parseEther("2.0") });`,
-                    expectedOutput: `Transaction sent, waiting for confirmation...
-✓ Staked 2.0 ETH`,
-                    explanation: "You're now a validator! Your 2 ETH is locked, and you'll earn rewards over time."
-                },
-                {
-                    title: "Run Validator Selection Simulation",
-                    why: "See how Ethereum's weighted random selection works. Higher stake = higher probability of being chosen.",
-                    bash: "npx hardhat run scripts/cli-labs/5-validator-simulation.js --network localhost",
-                    powershell: "npx hardhat run scripts/cli-labs/5-validator-simulation.js --network localhost",
-                    expectedOutput: `--- Validator Pool ---
-1. 0xf39F...
-   Stake: 2.0 ETH
-   Selection Probability: 40.00%
-2. 0x7099...
-   Stake: 3.0 ETH
-   Selection Probability: 60.00%
-
---- Running 100 Block Proposals ---
---- Selection Results ---
-0xf39F...
-   Expected: 40.0% | Actual: 38%
-   Selected: 38 times
-0x7099...
-   Expected: 60.0% | Actual: 62%
-   Selected: 62 times`,
-                    explanation: "Over 100 selections, the results match the stake proportions! This is how Ethereum achieves fair, energy-efficient consensus.",
-                    deepDive: {
-                        title: "🔬 How Validator Selection Works:",
-                        points: [
-                            {
-                                icon: "🎲",
-                                label: "Weighted Randomness",
-                                text: "It's NOT purely random! If you stake 32 ETH and someone else stakes 64 ETH, they're twice as likely to be selected. But randomness ensures even small stakers get a chance."
-                            },
-                            {
-                                icon: "🔐",
-                                label: "RANDAO (Random Number)",
-                                text: "Ethereum uses RANDAO - validators contribute randomness each epoch. No single validator can predict or manipulate who gets selected next."
-                            },
-                            {
-                                icon: "⏰",
-                                label: "Epochs and Slots",
-                                text: "Real Ethereum: 1 epoch = 32 slots, 1 slot = 12 seconds. Validators are assigned to slots in advance. Our simulation simplifies this to show the core concept."
-                            },
-                            {
-                                icon: "💰",
-                                label: "Economic Security",
-                                text: "To control 51% of block proposals, you need 51% of ALL staked ETH. That's ~$51 billion. And you'd lose it all if caught (slashing)!"
-                            },
-                            {
-                                icon: "🌱",
-                                label: "Energy Efficiency",
-                                text: "Unlike Proof-of-Work (Bitcoin), no energy-intensive mining. Selection is pure math. This cut Ethereum's energy use by 99.95%!"
-                            }
-                        ]
-                    },
-                    whyItMatters: "This is THE innovation that makes Ethereum sustainable. Understanding PoS selection is understanding how modern blockchains achieve consensus without destroying the planet!"
-                }
-            ]
-        },
-        {
-            id: 6,
-            title: "Collaborative Network",
-            duration: "45 min",
-            description: "Connect to instructor's blockchain and collaborate",
-            color: "#ef4444",
-            steps: [
-                {
-                    title: "Configure Connection to Instructor",
-                    why: "Instead of running your own node, connect to the instructor's shared blockchain. Everyone sees the same state!",
-                    bash: `# Edit hardhat.config.js, add:
-networks: {
-  classroom: {
-    url: "http://INSTRUCTOR_IP:8545",
-    chainId: 31337
-  }
-}`,
-                    powershell: `# Edit hardhat.config.js, add:
-networks: {
-  classroom: {
-    url: "http://INSTRUCTOR_IP:8545",
-    chainId: 31337
-  }
-}`,
-                    expectedOutput: `(No output - just edit the file)`,
-                    explanation: "Replace INSTRUCTOR_IP with the actual IP address shared by your instructor.",
-                    deepDive: {
-                        title: "🔬 How Shared Networks Work:",
-                        points: [
-                            {
-                                icon: "🌐",
-                                label: "RPC Endpoint",
-                                text: "The URL points to the instructor's Hardhat node. Your computer sends JSON-RPC requests over HTTP. The instructor's node processes them and returns results."
-                            },
-                            {
-                                icon: "🔗",
-                                label: "Shared State",
-                                text: "Everyone connects to the SAME blockchain. When you send a transaction, all classmates see it immediately. When someone deploys a contract, everyone can interact with it."
-                            },
-                            {
-                                icon: "🆔",
-                                label: "Chain ID Verification",
-                                text: "Your wallet checks the chain ID before signing. This prevents you from accidentally sending a mainnet transaction on a testnet (or vice versa)."
-                            },
-                            {
-                                icon: "👥",
-                                label: "Multi-User Coordination",
-                                text: "Multiple people can send transactions simultaneously. The node orders them by gas price and nonce. This is exactly how public Ethereum works!"
-                            },
-                            {
-                                icon: "🔐",
-                                label: "Your Keys, Your Coins",
-                                text: "Even though you're connected to instructor's node, YOUR private keys stay on YOUR computer. The node never sees them - only signed transactions."
-                            }
-                        ]
-                    },
-                    whyItMatters: "This simulates the real Ethereum experience. On mainnet, you connect to Infura/Alchemy nodes the same way. Understanding client-server architecture is crucial for decentralized apps!"
-                },
-                {
-                    title: "Send Transaction to Classmate",
-                    why: "Practice sending real transactions on a shared network. Your classmates will see this!",
-                    bash: `# In console connected to classroom network
-const [me] = await ethers.getSigners();
-await me.sendTransaction({
-  to: "0xCLASSMATE_ADDRESS",
-  value: ethers.parseEther("0.5")
-});`,
-                    powershell: `# In console connected to classroom network
-const [me] = await ethers.getSigners();
-await me.sendTransaction({
-  to: "0xCLASSMATE_ADDRESS",
-  value: ethers.parseEther("0.5")
-});`,
-                    expectedOutput: `{
-  hash: '0xabc...',
-  from: '0xYourAddress...',
-  to: '0xClassmateAddress...',
-  value: 500000000000000000n
-}`,
-                    explanation: "Your classmate's balance just increased! Check the instructor dashboard to see all transactions."
-                }
-            ]
-        }
+    const menuOptions = [
+        { num: '1', label: 'Network info', desc: 'View blockchain connection status' },
+        { num: '2', label: 'Block details', desc: 'Explore block data and transactions' },
+        { num: '3', label: 'Account balances', desc: 'Check ETH balances for addresses' },
+        { num: '4', label: 'Transaction lookup', desc: 'Find and analyze transactions' },
+        { num: '5', label: 'Select account', desc: 'Choose which account to use' },
+        { num: '6', label: 'Send ETH', desc: 'Transfer ETH between accounts' },
+        { num: '7', label: 'Contract interaction', desc: 'Call contract functions' },
+        { num: '8', label: 'Playground (Analyst Console)', desc: 'Interactive forensics environment', highlight: true }
     ];
 
-    const selectedLabData = labs.find(l => l.id === selectedLab);
-
     return (
-        <div className="cli-labs-view" style={{maxWidth: '1200px', margin: '0 auto'}}>
-            <div style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                padding: '2rem',
-                borderRadius: '1rem',
-                marginBottom: '2rem',
-                color: 'white'
-            }}>
-                <h2 style={{margin: 0, fontSize: '2rem'}}>🖥️ Command Line Labs</h2>
-                <p style={{margin: '0.75rem 0 0 0', fontSize: '1.1rem', opacity: 0.9}}>
-                    Follow along step-by-step. Copy commands, run them, and learn what happens!
+        <div style={{maxWidth: '900px', margin: '0 auto', padding: '2rem'}}>
+            {/* Header */}
+            <div style={{marginBottom: '2rem'}}>
+                <h2 style={{color: '#f8fafc', margin: '0 0 0.5rem 0', fontSize: '1.8rem'}}>
+                    🔍 Blockchain Forensics CLI
+                </h2>
+                <p style={{color: '#94a3b8', fontSize: '1.1rem', margin: 0}}>
+                    Interactive tools for blockchain analysis and investigation
                 </p>
             </div>
 
-            {/* OS Selector */}
+            {/* Quick Start */}
             <div style={{
-                display: 'flex',
-                gap: '1rem',
-                marginBottom: '2rem',
-                justifyContent: 'center'
+                background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(59, 130, 246, 0.15))',
+                border: '2px solid rgba(34, 197, 94, 0.4)',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem'
             }}>
-                <button
-                    onClick={() => setOS('bash')}
-                    style={{
-                        padding: '0.75rem 2rem',
-                        background: os === 'bash' ? '#10b981' : '#334155',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '1rem'
-                    }}
-                >
-                    🐧 Linux/Mac/Bash
-                </button>
-                <button
-                    onClick={() => setOS('powershell')}
-                    style={{
-                        padding: '0.75rem 2rem',
-                        background: os === 'powershell' ? '#3b82f6' : '#334155',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '1rem'
-                    }}
-                >
-                    🪟 Windows/PowerShell
-                </button>
+                <h3 style={{color: '#86efac', margin: '0 0 1rem 0'}}>🚀 Quick Start</h3>
+                
+                <div style={{marginBottom: '1rem'}}>
+                    <p style={{color: '#e2e8f0', margin: '0 0 0.75rem 0', fontWeight: '600'}}>
+                        1. Open a terminal and navigate to the CLI labs:
+                    </p>
+                    <CodeBlock code="cd scripts/cli-labs/standalone" id="cd" />
+                </div>
+
+                <div style={{marginBottom: '1rem'}}>
+                    <p style={{color: '#e2e8f0', margin: '0 0 0.75rem 0', fontWeight: '600'}}>
+                        2. Install dependencies (first time only):
+                    </p>
+                    <CodeBlock code="npm install" id="npm-install" />
+                </div>
+
+                <div style={{marginBottom: '1rem'}}>
+                    <p style={{color: '#e2e8f0', margin: '0 0 0.75rem 0', fontWeight: '600'}}>
+                        3. Configure connection (get values from instructor):
+                    </p>
+                    <CodeBlock 
+                        code={`export RPC_URL="http://INSTRUCTOR_IP:8545"
+export CONTRACT_ADDRESS="0x..."`} 
+                        id="env" 
+                    />
+                </div>
+
+                <div>
+                    <p style={{color: '#e2e8f0', margin: '0 0 0.75rem 0', fontWeight: '600'}}>
+                        4. Launch the interactive CLI:
+                    </p>
+                    <CodeBlock code="npm start" id="npm-start" />
+                </div>
             </div>
 
-            {!selectedLab ? (
-                /* Lab Selection Grid */
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem'}}>
-                    {labs.map(lab => (
-                        <div
-                            key={lab.id}
-                            onClick={() => setSelectedLab(lab.id)}
+            {/* Menu Options */}
+            <div style={{
+                background: '#1e293b',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+                border: '1px solid #334155'
+            }}>
+                <h3 style={{color: '#f8fafc', margin: '0 0 1rem 0'}}>📋 Menu Options</h3>
+                <p style={{color: '#94a3b8', margin: '0 0 1rem 0'}}>
+                    After running <code style={{background: '#0f172a', padding: '2px 6px', borderRadius: '4px'}}>npm start</code>, 
+                    you'll see this menu:
+                </p>
+                
+                <div style={{display: 'grid', gap: '0.5rem'}}>
+                    {menuOptions.map(opt => (
+                        <div 
+                            key={opt.num}
                             style={{
-                                background: '#1e293b',
-                                border: `3px solid ${lab.color}`,
-                                borderRadius: '1rem',
-                                padding: '1.5rem',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                position: 'relative'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-8px)';
-                                e.currentTarget.style.boxShadow = `0 12px 24px ${lab.color}40`;
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = 'none';
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1rem',
+                                padding: '0.75rem 1rem',
+                                background: opt.highlight ? 'rgba(251, 191, 36, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                                borderRadius: '0.5rem',
+                                border: opt.highlight ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid transparent'
                             }}
                         >
-                            <div style={{
-                                width: '50px',
-                                height: '50px',
+                            <span style={{
+                                width: '32px',
+                                height: '32px',
                                 borderRadius: '50%',
-                                background: lab.color,
+                                background: opt.highlight ? '#fbbf24' : '#3b82f6',
+                                color: opt.highlight ? '#0f172a' : 'white',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '1.5rem',
                                 fontWeight: 'bold',
-                                color: 'white',
-                                marginBottom: '1rem'
+                                fontSize: '0.9rem'
                             }}>
-                                {lab.id}
+                                {opt.num}
+                            </span>
+                            <div style={{flex: 1}}>
+                                <div style={{color: opt.highlight ? '#fbbf24' : '#f8fafc', fontWeight: '600'}}>
+                                    {opt.label}
+                                </div>
+                                <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>
+                                    {opt.desc}
+                                </div>
                             </div>
-                            <h3 style={{color: '#f8fafc', margin: '0 0 0.5rem 0', fontSize: '1.2rem'}}>{lab.title}</h3>
-                            <p style={{color: '#cbd5e1', fontSize: '0.95rem', marginBottom: '1rem'}}>{lab.description}</p>
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
+                            {opt.highlight && (
                                 <span style={{
-                                    background: 'rgba(255,255,255,0.1)',
+                                    background: '#fbbf24',
+                                    color: '#0f172a',
                                     padding: '0.25rem 0.75rem',
                                     borderRadius: '999px',
-                                    fontSize: '0.85rem',
-                                    color: '#94a3b8'
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold'
                                 }}>
-                                    ⏱️ {lab.duration}
+                                    FORENSICS
                                 </span>
-                                <span style={{color: lab.color, fontWeight: 'bold'}}>
-                                    Start Lab →
-                                </span>
-                            </div>
+                            )}
                         </div>
                     ))}
                 </div>
-            ) : (
-                /* Lab Detail View */
-                <div>
-                    <button
-                        onClick={() => setSelectedLab(null)}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            background: '#334155',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            marginBottom: '1.5rem',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        ← Back to Lab List
-                    </button>
+            </div>
 
-                    <div style={{
-                        background: `linear-gradient(135deg, ${selectedLabData.color}40, ${selectedLabData.color}20)`,
-                        border: `2px solid ${selectedLabData.color}`,
-                        borderRadius: '1rem',
-                        padding: '2rem',
-                        marginBottom: '2rem'
-                    }}>
-                        <div style={{display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1rem'}}>
-                            <div style={{
-                                width: '60px',
-                                height: '60px',
-                                borderRadius: '50%',
-                                background: selectedLabData.color,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '2rem',
-                                fontWeight: 'bold',
-                                color: 'white'
-                            }}>
-                                {selectedLabData.id}
-                            </div>
-                            <div>
-                                <h2 style={{margin: 0, color: '#f8fafc', fontSize: '1.8rem'}}>{selectedLabData.title}</h2>
-                                <p style={{margin: '0.5rem 0 0 0', color: '#cbd5e1', fontSize: '1.05rem'}}>{selectedLabData.description}</p>
-                            </div>
-                        </div>
-                    </div>
+            {/* Playground Section */}
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1))',
+                border: '2px solid rgba(251, 191, 36, 0.4)',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem'
+            }}>
+                <h3 style={{color: '#fbbf24', margin: '0 0 1rem 0'}}>🎮 Playground Mode (Option 8)</h3>
+                <p style={{color: '#e2e8f0', margin: '0 0 1rem 0'}}>
+                    The Playground is an interactive JavaScript console designed for blockchain forensics. 
+                    <strong> Variables persist between commands</strong> using the ctx object.
+                </p>
 
-                    {/* Steps */}
-                    <div style={{display: 'flex', flexDirection: 'column', gap: '2rem'}}>
-                        {selectedLabData.steps.map((step, idx) => {
-                            const stepKey = `${selectedLab}-${idx}`;
-                            const isCompleted = completedSteps[stepKey];
-
-                            return (
-                                <div key={idx} style={{
-                                    background: '#1e293b',
-                                    border: `2px solid ${isCompleted ? '#22c55e' : '#334155'}`,
-                                    borderRadius: '1rem',
-                                    padding: '2rem',
-                                    position: 'relative'
-                                }}>
-                                    {/* Step Header */}
-                                    <div style={{display: 'flex', alignItems: 'start', gap: '1rem', marginBottom: '1.5rem'}}>
-                                        <div style={{
-                                            width: '40px',
-                                            height: '40px',
-                                            borderRadius: '50%',
-                                            background: isCompleted ? '#22c55e' : selectedLabData.color,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1.2rem',
-                                            fontWeight: 'bold',
-                                            color: 'white',
-                                            flexShrink: 0
-                                        }}>
-                                            {isCompleted ? '✓' : idx + 1}
-                                        </div>
-                                        <div style={{flex: 1}}>
-                                            <h3 style={{margin: 0, color: '#f8fafc', fontSize: '1.3rem'}}>{step.title}</h3>
-                                        </div>
-                                    </div>
-
-                                    {/* Why Section */}
-                                    <div style={{
-                                        background: 'rgba(59,130,246,0.1)',
-                                        padding: '1rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid rgba(59,130,246,0.3)',
-                                        marginBottom: '1.5rem'
-                                    }}>
-                                        <div style={{color: '#93c5fd', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem'}}>
-                                            💡 WHY ARE WE DOING THIS?
-                                        </div>
-                                        <p style={{color: '#cbd5e1', margin: 0, lineHeight: '1.6'}}>{step.why}</p>
-                                    </div>
-
-                                    {/* Command */}
-                                    <div style={{marginBottom: '1.5rem'}}>
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            marginBottom: '0.75rem'
-                                        }}>
-                                            <div style={{color: '#86efac', fontWeight: 'bold', fontSize: '0.9rem'}}>
-                                                📝 COMMAND TO RUN:
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(os === 'bash' ? step.bash : step.powershell);
-                                                    alert('Copied to clipboard!');
-                                                }}
-                                                style={{
-                                                    padding: '0.5rem 1rem',
-                                                    background: '#3b82f6',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: '0.25rem',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.85rem',
-                                                    fontWeight: 'bold'
-                                                }}
-                                            >
-                                                📋 Copy Command
-                                            </button>
-                                        </div>
-                                        <pre style={{
-                                            background: '#0f172a',
-                                            padding: '1.5rem',
-                                            borderRadius: '0.5rem',
-                                            overflow: 'auto',
-                                            margin: 0,
-                                            border: '1px solid #334155'
-                                        }}>
-                                            <code style={{color: '#86efac', fontFamily: 'monospace', fontSize: '0.95rem', whiteSpace: 'pre-wrap'}}>
-                                                {os === 'bash' ? step.bash : step.powershell}
-                                            </code>
-                                        </pre>
-                                    </div>
-
-                                    {/* Expected Output */}
-                                    <div style={{marginBottom: '1.5rem'}}>
-                                        <div style={{color: '#f9a8d4', fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.9rem'}}>
-                                            📺 EXPECTED OUTPUT:
-                                        </div>
-                                        <pre style={{
-                                            background: '#0f172a',
-                                            padding: '1.5rem',
-                                            borderRadius: '0.5rem',
-                                            overflow: 'auto',
-                                            margin: 0,
-                                            border: '1px solid #334155'
-                                        }}>
-                                            <code style={{color: '#cbd5e1', fontFamily: 'monospace', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>
-                                                {step.expectedOutput}
-                                            </code>
-                                        </pre>
-                                    </div>
-
-                                    {/* Explanation */}
-                                    <div style={{
-                                        background: 'rgba(139,92,246,0.1)',
-                                        padding: '1rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid rgba(139,92,246,0.3)',
-                                        marginBottom: '1rem'
-                                    }}>
-                                        <div style={{color: '#a78bfa', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem'}}>
-                                            🎓 WHAT JUST HAPPENED?
-                                        </div>
-                                        <p style={{color: '#e2e8f0', margin: 0, lineHeight: '1.6'}}>{step.explanation}</p>
-                                    </div>
-
-                                    {/* Deep Dive Section */}
-                                    {step.deepDive && (
-                                        <div style={{
-                                            background: 'rgba(59,130,246,0.1)',
-                                            padding: '1.5rem',
-                                            borderRadius: '0.75rem',
-                                            border: '2px solid rgba(59,130,246,0.4)',
-                                            marginBottom: '1rem'
-                                        }}>
-                                            <h5 style={{color: '#93c5fd', marginTop: 0, marginBottom: '1rem', fontSize: '1.05rem'}}>
-                                                {step.deepDive.title}
-                                            </h5>
-                                            <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                                                {step.deepDive.points.map((point, pIdx) => (
-                                                    <div key={pIdx} style={{display: 'flex', gap: '1rem', alignItems: 'start'}}>
-                                                        <div style={{
-                                                            fontSize: '1.5rem',
-                                                            flexShrink: 0,
-                                                            width: '35px',
-                                                            textAlign: 'center'
-                                                        }}>
-                                                            {point.icon}
-                                                        </div>
-                                                        <div style={{flex: 1}}>
-                                                            <div style={{
-                                                                fontWeight: 'bold',
-                                                                color: '#93c5fd',
-                                                                marginBottom: '0.25rem',
-                                                                fontSize: '0.95rem'
-                                                            }}>
-                                                                {point.label}
-                                                            </div>
-                                                            <div style={{color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '1.6'}}>
-                                                                {point.text}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Why It Matters */}
-                                    {step.whyItMatters && (
-                                        <div style={{
-                                            background: 'rgba(245,158,11,0.1)',
-                                            padding: '1rem',
-                                            borderRadius: '0.5rem',
-                                            border: '1px solid rgba(245,158,11,0.3)',
-                                            marginBottom: '1rem'
-                                        }}>
-                                            <div style={{color: '#fbbf24', fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '0.9rem'}}>
-                                                ⭐ WHY THIS MATTERS:
-                                            </div>
-                                            <p style={{color: '#e2e8f0', margin: 0, lineHeight: '1.6', fontSize: '0.95rem'}}>
-                                                {step.whyItMatters}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Try Next Section */}
-                                    {step.tryNext && (
-                                        <div style={{
-                                            background: 'rgba(16,185,129,0.1)',
-                                            padding: '1.5rem',
-                                            borderRadius: '0.75rem',
-                                            border: '2px solid rgba(16,185,129,0.4)',
-                                            marginBottom: '1.5rem'
-                                        }}>
-                                            <h4 style={{color: '#86efac', marginTop: 0, marginBottom: '1rem'}}>
-                                                {step.tryNext.title}
-                                            </h4>
-                                            <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
-                                                {step.tryNext.tasks.map((task, tIdx) => (
-                                                    <div key={tIdx}>
-                                                        <div style={{
-                                                            color: '#cbd5e1',
-                                                            fontWeight: 'bold',
-                                                            marginBottom: '0.75rem',
-                                                            fontSize: '1rem'
-                                                        }}>
-                                                            {tIdx + 1}. {task.task}
-                                                        </div>
-                                                        <div style={{position: 'relative'}}>
-                                                            <button
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(os === 'bash' ? task.bash : task.powershell);
-                                                                    alert('Copied to clipboard!');
-                                                                }}
-                                                                style={{
-                                                                    position: 'absolute',
-                                                                    top: '0.5rem',
-                                                                    right: '0.5rem',
-                                                                    padding: '0.5rem 1rem',
-                                                                    background: '#10b981',
-                                                                    color: 'white',
-                                                                    border: 'none',
-                                                                    borderRadius: '0.25rem',
-                                                                    cursor: 'pointer',
-                                                                    fontSize: '0.85rem',
-                                                                    fontWeight: 'bold',
-                                                                    zIndex: 1
-                                                                }}
-                                                            >
-                                                                📋 Copy
-                                                            </button>
-                                                            <pre style={{
-                                                                background: '#0f172a',
-                                                                padding: '1rem',
-                                                                paddingRight: '6rem',
-                                                                borderRadius: '0.5rem',
-                                                                overflow: 'auto',
-                                                                margin: '0 0 0.75rem 0',
-                                                                border: '1px solid #334155'
-                                                            }}>
-                                                                <code style={{color: '#86efac', fontFamily: 'monospace', fontSize: '0.9rem', whiteSpace: 'pre-wrap'}}>
-                                                                    {os === 'bash' ? task.bash : task.powershell}
-                                                                </code>
-                                                            </pre>
-                                                        </div>
-                                                        <div style={{
-                                                            padding: '0.75rem',
-                                                            background: 'rgba(34,197,94,0.2)',
-                                                            borderRadius: '0.5rem',
-                                                            fontSize: '0.9rem',
-                                                            color: '#cbd5e1'
-                                                        }}>
-                                                            <strong style={{color: '#86efac'}}>Expected Result:</strong> {task.result}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Mark Complete */}
-                                    <button
-                                        onClick={() => {
-                                            setCompletedSteps({...completedSteps, [stepKey]: !isCompleted});
-                                        }}
-                                        style={{
-                                            padding: '0.75rem 1.5rem',
-                                            background: isCompleted ? '#64748b' : '#22c55e',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.5rem',
-                                            cursor: 'pointer',
-                                            fontWeight: 'bold',
-                                            fontSize: '1rem'
-                                        }}
-                                    >
-                                        {isCompleted ? '✓ Completed' : 'Mark as Complete'}
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Next Lab Button */}
-                    {selectedLab < labs.length && (
-                        <div style={{marginTop: '2rem', textAlign: 'center'}}>
-                            <button
-                                onClick={() => setSelectedLab(selectedLab + 1)}
-                                style={{
-                                    padding: '1.25rem 2.5rem',
-                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '0.75rem',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold',
-                                    fontSize: '1.1rem',
-                                    boxShadow: '0 4px 12px rgba(139,92,246,0.4)'
-                                }}
-                            >
-                                Next Lab: {labs[selectedLab]?.title} →
-                            </button>
-                        </div>
-                    )}
+                <div style={{
+                    background: '#0f172a',
+                    borderRadius: '0.5rem',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    fontFamily: "'Fira Code', monospace",
+                    fontSize: '0.85rem'
+                }}>
+                    <div style={{color: '#22c55e', marginBottom: '0.5rem'}}>&gt; ctx.target = '0xf39F...'</div>
+                    <div style={{color: '#22c55e', marginBottom: '0.5rem'}}>&gt; ctx.balance = await provider.getBalance(ctx.target)</div>
+                    <div style={{color: '#22c55e', marginBottom: '0.5rem'}}>&gt; console.log(formatEth(ctx.balance), 'ETH')</div>
+                    <div style={{color: '#94a3b8'}}>9998.5 ETH</div>
                 </div>
-            )}
 
-            {/* Codespaces CTA */}
-            {!selectedLab && (
-                <>
-                    <div style={{
-                        marginTop: '2rem',
-                        padding: '2rem',
-                        background: 'linear-gradient(135deg, #2ea043 0%, #1f883d 100%)',
-                        borderRadius: '1rem',
-                        textAlign: 'center',
-                        color: 'white',
-                        boxShadow: '0 8px 24px rgba(46,160,67,0.3)'
-                    }}>
-                        <div style={{fontSize: '3rem', marginBottom: '1rem'}}>🚀</div>
-                        <h3 style={{margin: '0 0 1rem 0', fontSize: '1.8rem'}}>Ready to Start?</h3>
-                        <p style={{fontSize: '1.1rem', marginBottom: '1.5rem', opacity: 0.95}}>
-                            Get a full development environment with terminal in your browser - no installation required!
-                        </p>
-                        <a 
-                            href="https://codespaces.new/alld0wnh1ll/ethereum-lab"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                                display: 'inline-block',
-                                padding: '1.25rem 2.5rem',
-                                background: 'white',
-                                color: '#1f883d',
-                                textDecoration: 'none',
-                                borderRadius: '0.75rem',
-                                fontWeight: 'bold',
-                                fontSize: '1.2rem',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                                transition: 'transform 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                        >
-                            🖥️ Open in GitHub Codespaces
-                        </a>
-                        <p style={{fontSize: '0.9rem', marginTop: '1rem', opacity: 0.9}}>
-                            ✨ Free with GitHub Student Pack | Includes VS Code + Terminal + All Dependencies
-                        </p>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem'}}>
+                    <div style={{background: '#1e293b', padding: '0.75rem', borderRadius: '0.5rem'}}>
+                        <div style={{color: '#93c5fd', fontWeight: '600', marginBottom: '0.25rem'}}>💡 help</div>
+                        <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>Show quick examples</div>
                     </div>
+                    <div style={{background: '#1e293b', padding: '0.75rem', borderRadius: '0.5rem'}}>
+                        <div style={{color: '#93c5fd', fontWeight: '600', marginBottom: '0.25rem'}}>💡 help forensics</div>
+                        <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>Address & transaction analysis</div>
+                    </div>
+                    <div style={{background: '#1e293b', padding: '0.75rem', borderRadius: '0.5rem'}}>
+                        <div style={{color: '#93c5fd', fontWeight: '600', marginBottom: '0.25rem'}}>💡 help investigate</div>
+                        <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>Full investigation workflows</div>
+                    </div>
+                    <div style={{background: '#1e293b', padding: '0.75rem', borderRadius: '0.5rem'}}>
+                        <div style={{color: '#93c5fd', fontWeight: '600', marginBottom: '0.25rem'}}>💡 vars</div>
+                        <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>Show stored variables</div>
+                    </div>
+                </div>
+            </div>
 
-                    <div style={{
-                        marginTop: '2rem',
-                        padding: '1.5rem',
-                        background: 'rgba(59,130,246,0.15)',
-                        borderRadius: '1rem',
-                        border: '2px solid rgba(59,130,246,0.4)',
-                        textAlign: 'center'
-                    }}>
-                        <h3 style={{color: '#93c5fd', marginTop: 0}}>📚 Full Documentation</h3>
-                        <p style={{color: '#cbd5e1', marginBottom: '1rem'}}>
-                            For complete documentation with all 7 labs, testing guides, and advanced exercises:
-                        </p>
-                        <a 
-                            href="https://github.com/alld0wnh1ll/ethereum-lab/blob/main/CLI_LABS.md"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                                display: 'inline-block',
-                                padding: '1rem 2rem',
-                                background: '#3b82f6',
-                                color: 'white',
-                                textDecoration: 'none',
-                                borderRadius: '0.5rem',
-                                fontWeight: 'bold',
-                                fontSize: '1.05rem'
-                            }}
-                        >
-                            📖 View CLI_LABS.md on GitHub
-                        </a>
+            {/* Available Variables */}
+            <div style={{
+                background: '#1e293b',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+                border: '1px solid #334155'
+            }}>
+                <h3 style={{color: '#f8fafc', margin: '0 0 1rem 0'}}>📦 Available in Playground</h3>
+                
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem'}}>
+                    <div>
+                        <h4 style={{color: '#93c5fd', margin: '0 0 0.5rem 0', fontSize: '0.95rem'}}>Core Objects</h4>
+                        <ul style={{margin: 0, paddingLeft: '1.25rem', color: '#e2e8f0'}}>
+                            <li><code style={{color: '#fbbf24'}}>provider</code> - Blockchain connection</li>
+                            <li><code style={{color: '#fbbf24'}}>wallet</code> - Your account</li>
+                            <li><code style={{color: '#fbbf24'}}>contract</code> - PoS contract</li>
+                            <li><code style={{color: '#fbbf24'}}>ethers</code> - ethers.js library</li>
+                            <li><code style={{color: '#fbbf24'}}>ctx</code> - Your variables</li>
+                        </ul>
                     </div>
-                </>
-            )}
+                    <div>
+                        <h4 style={{color: '#93c5fd', margin: '0 0 0.5rem 0', fontSize: '0.95rem'}}>Helper Functions</h4>
+                        <ul style={{margin: 0, paddingLeft: '1.25rem', color: '#e2e8f0'}}>
+                            <li><code style={{color: '#fbbf24'}}>formatEth(wei)</code> - Wei to ETH</li>
+                            <li><code style={{color: '#fbbf24'}}>parseEth(eth)</code> - ETH to Wei</li>
+                            <li><code style={{color: '#fbbf24'}}>formatAddr(addr)</code> - Shorten address</li>
+                            <li><code style={{color: '#fbbf24'}}>toDate(ts)</code> - Timestamp to date</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {/* Individual Labs */}
+            <div style={{
+                background: '#1e293b',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+                border: '1px solid #334155'
+            }}>
+                <h3 style={{color: '#f8fafc', margin: '0 0 1rem 0'}}>📚 Individual Lab Scripts</h3>
+                <p style={{color: '#94a3b8', margin: '0 0 1rem 0'}}>
+                    Run specific learning modules directly:
+                </p>
+                
+                <div style={{display: 'grid', gap: '0.75rem'}}>
+                    <CodeBlock code="node 1-explore-blockchain.js" id="lab1" label="Lab 1: Blockchain Basics" />
+                    <CodeBlock code="node 2-sign-transaction.js" id="lab2" label="Lab 2: Transaction Mechanics" />
+                    <CodeBlock code="node 3-interact-contract.js" id="lab3" label="Lab 3: Contract Interaction" />
+                    <CodeBlock code="node 4-forensics.js" id="lab4" label="Lab 4: Forensics Training" />
+                </div>
+            </div>
+
+            {/* Test Accounts */}
+            <div style={{
+                background: '#1e293b',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                border: '1px solid #334155'
+            }}>
+                <h3 style={{color: '#f8fafc', margin: '0 0 1rem 0'}}>👥 Test Accounts</h3>
+                <p style={{color: '#94a3b8', margin: '0 0 1rem 0'}}>
+                    All students share these test accounts. Each starts with 10,000 ETH:
+                </p>
+                
+                <div style={{
+                    background: '#0f172a',
+                    borderRadius: '0.5rem',
+                    padding: '1rem',
+                    fontFamily: "'Fira Code', monospace",
+                    fontSize: '0.8rem',
+                    overflow: 'auto'
+                }}>
+                    <div style={{display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem'}}>
+                        <span style={{color: '#94a3b8'}}>Account 0:</span>
+                        <span style={{color: '#fbbf24'}}>0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266</span>
+                        <span style={{color: '#94a3b8'}}>Account 1:</span>
+                        <span style={{color: '#fbbf24'}}>0x70997970C51812dc3A010C7d01b50e0d17dc79C8</span>
+                        <span style={{color: '#94a3b8'}}>Account 2:</span>
+                        <span style={{color: '#fbbf24'}}>0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC</span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
@@ -7277,7 +6286,9 @@ function App() {
   const [showRpcConfig, setShowRpcConfig] = useState(isRemote || isStudentMode) // Show config for remote users and students
   const [provider, setProvider] = useState(null)
   const [nodeStatus, setNodeStatus] = useState({ connected: false, blockNumber: 0 })
-  const [wallet, setWallet] = useState({ address: null, signer: null, balance: '0', mode: null })
+  const [wallet, setWallet] = useState({ address: null, signer: null, balance: '0', mode: null, nickname: 'My Wallet' })
+  const [showAccountManager, setShowAccountManager] = useState(false)
+  const [showLiveHelp, setShowLiveHelp] = useState(false)
   const [posAddress, setPosAddress] = useState(() => {
     const stored = localStorage.getItem("pos_addr");
     if (stored && stored.length === 42) return stored;
@@ -7515,13 +6526,17 @@ function App() {
             const addr = await signer.getAddress()
              const connectedSigner = signer.connect(provider)
              const bal = await provider.getBalance(addr).catch(() => 0n)
+             // Get wallet nickname from storage
+             const walletInfo = getWalletInfo()
+             const nickname = walletInfo?.nickname || 'My Wallet'
             if (!cancelled) {
                 setWallet(prev => ({
                     ...prev,
                     address: addr,
                     signer: connectedSigner,
                     balance: ethers.formatEther(bal),
-                    mode: mode || 'guest'
+                    mode: mode || 'guest',
+                    nickname: nickname
                 }))
             }
         } catch (err) {
@@ -7750,6 +6765,52 @@ function App() {
       clearInterval(interval);
     }
   }, [provider, wallet.address, view, posAddress, withdrawalRequested, myStake.unbondingStartTime])
+
+  // Handle account change from AccountManager
+  const handleAccountChange = async (newWalletInfo) => {
+    // Handle logout case - user logged out, refresh to get new guest wallet
+    if (!newWalletInfo) {
+      setStatusMsg('🔄 Logging out... Creating new wallet');
+      setShowAccountManager(false);
+      
+      // Trigger re-initialization of guest wallet by resetting wallet state
+      setWallet({ address: null, signer: null, balance: '0', mode: null, nickname: 'My Wallet' });
+      hasAutoJoined.current = false;
+      
+      // The useEffect that runs hydrateGuestWallet will create a new wallet
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+      return;
+    }
+    
+    if (!newWalletInfo.address) return;
+    
+    try {
+      // Create a new signer from the private key
+      const newWallet = new ethers.Wallet(newWalletInfo.privateKey);
+      const connectedSigner = newWallet.connect(provider);
+      const bal = await provider.getBalance(newWalletInfo.address).catch(() => 0n);
+      
+      setWallet({
+        address: newWalletInfo.address,
+        signer: connectedSigner,
+        balance: ethers.formatEther(bal),
+        mode: 'imported',
+        nickname: newWalletInfo.nickname || 'My Wallet'
+      });
+      
+      // Reset auto-join flag so the new wallet can join the class
+      hasAutoJoined.current = false;
+      
+      setStatusMsg(`✅ Account switched to ${newWalletInfo.nickname || newWalletInfo.address.slice(0,8)}`);
+      setTimeout(() => setStatusMsg(''), 3000);
+      setShowAccountManager(false);
+    } catch (err) {
+      console.error("Account switch failed:", err);
+      setStatusMsg("❌ Failed to switch account: " + err.message);
+    }
+  };
 
   // Helpers
   const requestFunds = async () => {
@@ -8312,6 +7373,112 @@ function App() {
                         }}>
                             {nodeStatus.connected ? `Block #${nodeStatus.blockNumber}` : 'Disconnected'}
                         </span>
+                    </div>
+                    
+                    {/* Account Switcher */}
+                    <div style={{
+                        padding: '0.75rem',
+                        background: 'rgba(59, 130, 246, 0.15)',
+                        borderRadius: '0.5rem',
+                        marginBottom: '1rem',
+                        border: '1px solid rgba(59, 130, 246, 0.3)'
+                    }}>
+                        <div style={{fontSize: '0.75rem', color: '#60a5fa', marginBottom: '0.5rem'}}>
+                            👤 Your Account
+                        </div>
+                        <div style={{fontSize: '0.8rem', color: '#f1f5f9', marginBottom: '0.5rem', fontFamily: 'monospace'}}>
+                            {wallet.address ? `${wallet.address.slice(0,8)}...${wallet.address.slice(-6)}` : 'No wallet'}
+                        </div>
+                        <div style={{display: 'flex', gap: '0.5rem', flexWrap: 'wrap'}}>
+                            <button
+                                onClick={() => {
+                                    let key = prompt('Enter private key (0x...) to import:');
+                                    if (!key) return;
+                                    
+                                    // Clean up the key - trim whitespace
+                                    key = key.trim();
+                                    
+                                    // Add 0x prefix if missing
+                                    if (!key.startsWith('0x') && key.length === 64) {
+                                        key = '0x' + key;
+                                    }
+                                    
+                                    // Validate and import
+                                    if (key.startsWith('0x') && key.length === 66) {
+                                        const result = importWallet(key, 'Imported Wallet');
+                                        if (result.success) {
+                                            alert(`Account imported!\n\nAddress: ${result.address}\n\nRefreshing...`);
+                                            window.location.reload();
+                                        } else {
+                                            alert('Import failed. Please check your private key.');
+                                        }
+                                    } else {
+                                        alert(`Invalid key format.\n\nExpected: 66 characters starting with 0x\nGot: ${key.length} characters\n\nMake sure you copied the full private key.`);
+                                    }
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: 'rgba(34, 197, 94, 0.2)',
+                                    border: '1px solid rgba(34, 197, 94, 0.4)',
+                                    borderRadius: '0.35rem',
+                                    color: '#86efac',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                📥 Import
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const nickname = prompt('Enter a nickname for your new wallet:') || 'My Wallet';
+                                    const newWallet = generateNewWallet(nickname);
+                                    alert(`New wallet created!\n\nAddress: ${newWallet.address}\n\n⚠️ SAVE YOUR PRIVATE KEY:\n${newWallet.privateKey}\n\nRefreshing...`);
+                                    window.location.reload();
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: 'rgba(59, 130, 246, 0.2)',
+                                    border: '1px solid rgba(59, 130, 246, 0.4)',
+                                    borderRadius: '0.35rem',
+                                    color: '#93c5fd',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                🔑 New
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const walletInfo = getWalletInfo();
+                                    if (walletInfo) {
+                                        const show = confirm(`Your Private Key:\n\n${walletInfo.privateKey}\n\nClick OK to copy to clipboard`);
+                                        if (show) {
+                                            navigator.clipboard.writeText(walletInfo.privateKey);
+                                            alert('Private key copied to clipboard!\n\n⚠️ Keep it safe and never share it!');
+                                        }
+                                    } else {
+                                        alert('No wallet found');
+                                    }
+                                }}
+                                style={{
+                                    flex: 1,
+                                    padding: '0.5rem',
+                                    background: 'rgba(251, 191, 36, 0.2)',
+                                    border: '1px solid rgba(251, 191, 36, 0.4)',
+                                    borderRadius: '0.35rem',
+                                    color: '#fcd34d',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600'
+                                }}
+                            >
+                                🔐 Export
+                            </button>
+                        </div>
                     </div>
 
                     {/* Diagnostics quick access */}
@@ -9283,24 +8450,62 @@ function App() {
                                         </span>
                                     )}
                         </div>
+                                <div style={{fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.25rem'}}>
+                                    {wallet.nickname || 'My Wallet'}
+                                </div>
                                 <div style={{fontSize: '0.9rem', opacity: 0.8, fontFamily: 'monospace'}}>
                                     {wallet.address ? `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}` : 'No Wallet'}
                         </div>
                             </div>
-                            <button 
-                                onClick={() => copyAddress(wallet.address)}
-                                style={{
-                                    background: 'rgba(255,255,255,0.2)',
-                                    border: 'none',
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '0.5rem',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                📋 Copy Address
-                            </button>
+                            <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center'}}>
+                                <button 
+                                    onClick={() => copyAddress(wallet.address)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: 'none',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '0.5rem',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    📋 Copy
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        const walletInfo = getWalletInfo();
+                                        if (walletInfo) {
+                                            alert(`Your Account:\n\nNickname: ${walletInfo.nickname}\nAddress: ${walletInfo.address}\n\nUse the sidebar buttons to Import/Export/Create accounts.`);
+                                        }
+                                    }}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: 'none',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '0.5rem',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    ⚙️ Account
+                                </button>
+                                <button 
+                                    onClick={() => setShowLiveHelp(true)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: 'none',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '0.5rem',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    ❓ Help
+                                </button>
+                            </div>
                         </div>
                         
                         <div style={{textAlign: 'center', padding: '2rem 0'}}>
@@ -10281,6 +9486,162 @@ function App() {
                                         'rgba(59, 130, 246, 0.4)'
                         }}>
                             {statusMsg}
+                        </div>
+                    )}
+                    
+                    {/* Help Guide Overlay */}
+                    {showLiveHelp && (
+                        <div 
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: 'rgba(0,0,0,0.9)',
+                                zIndex: 10000,
+                                overflow: 'auto',
+                                padding: '2rem'
+                            }}
+                            onClick={() => setShowLiveHelp(false)}
+                        >
+                            <div 
+                                style={{
+                                    maxWidth: '900px',
+                                    margin: '0 auto',
+                                    background: '#1e293b',
+                                    borderRadius: '1rem',
+                                    padding: '2rem',
+                                    border: '2px solid #3b82f6'
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
+                                    <h2 style={{margin: 0, color: '#f8fafc', fontSize: '1.5rem'}}>📖 Live Network Guide</h2>
+                                    <button
+                                        onClick={() => setShowLiveHelp(false)}
+                                        style={{
+                                            background: 'rgba(239, 68, 68, 0.2)',
+                                            border: '1px solid rgba(239, 68, 68, 0.4)',
+                                            color: '#fca5a5',
+                                            padding: '0.5rem 1rem',
+                                            borderRadius: '0.5rem',
+                                            cursor: 'pointer',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        ✕ Close
+                                    </button>
+                                </div>
+                                
+                                <p style={{color: '#94a3b8', marginBottom: '2rem', fontSize: '1rem', lineHeight: 1.6}}>
+                                    Welcome to the Live Network! This is your hands-on blockchain experience where you can send real transactions, 
+                                    stake ETH, and interact with classmates.
+                                </p>
+                                
+                                {/* Feature Guide Sections */}
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '1.5rem'}}>
+                                    
+                                    {/* Wallet Header */}
+                                    <div style={{background: 'rgba(59, 130, 246, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(59, 130, 246, 0.3)'}}>
+                                        <h3 style={{color: '#60a5fa', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>💳 Wallet Header (Blue Section)</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Connection Status:</strong> Shows if you're connected to the blockchain and the current block number</li>
+                                            <li><strong>Your Nickname:</strong> Your display name visible to classmates</li>
+                                            <li><strong>Your Address:</strong> Your unique blockchain address (like an account number)</li>
+                                            <li><strong>Balance:</strong> How much ETH you have in your wallet</li>
+                                            <li><strong>📋 Copy:</strong> Copy your address to share with others</li>
+                                            <li><strong>⚙️ Account:</strong> View your account details</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Quick Actions */}
+                                    <div style={{background: 'rgba(16, 185, 129, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.3)'}}>
+                                        <h3 style={{color: '#34d399', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>⚡ Quick Action Buttons</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>🚰 Get 5 ETH:</strong> Request free test ETH from the faucet to experiment with</li>
+                                            <li><strong>📤 Send:</strong> Jump to the Send ETH section to transfer funds</li>
+                                            <li><strong>📥 Stake:</strong> Jump to the Staking section to participate in staking</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Send ETH */}
+                                    <div style={{background: 'rgba(139, 92, 246, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(139, 92, 246, 0.3)'}}>
+                                        <h3 style={{color: '#a78bfa', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>📤 Send ETH Section</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Recipient Address:</strong> Paste the address of who you want to send ETH to</li>
+                                            <li><strong>Amount:</strong> Enter how much ETH to send</li>
+                                            <li><strong>Quick Amounts:</strong> Click preset amounts (0.1, 0.5, 1.0 ETH) for convenience</li>
+                                            <li><strong>Send Button:</strong> Executes the transaction on the blockchain</li>
+                                            <li><em>Tip: Click a classmate's name in the sidebar to auto-fill their address!</em></li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Staking */}
+                                    <div style={{background: 'rgba(251, 191, 36, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(251, 191, 36, 0.3)'}}>
+                                        <h3 style={{color: '#fbbf24', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>🥩 Staking Pool Section</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Pool Stats:</strong> Shows total ETH staked and number of participants</li>
+                                            <li><strong>Your Stake:</strong> How much you've staked and rewards earned</li>
+                                            <li><strong>Stake Button:</strong> Lock up ETH to earn rewards (like a savings account)</li>
+                                            <li><strong>Unstake:</strong> Request to withdraw your staked ETH (has unbonding period)</li>
+                                            <li><strong>Claim Rewards:</strong> Collect your earned staking rewards</li>
+                                            <li><em>Staking demonstrates how Proof of Stake consensus works!</em></li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Transaction History */}
+                                    <div style={{background: 'rgba(236, 72, 153, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(236, 72, 153, 0.3)'}}>
+                                        <h3 style={{color: '#f472b6', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>📜 Transaction History</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Sent/Received:</strong> Shows all your incoming and outgoing transactions</li>
+                                            <li><strong>Block Number:</strong> Which block the transaction was included in</li>
+                                            <li><strong>Copy Hash:</strong> Copy the transaction ID to look it up</li>
+                                            <li><em>This is your permanent, immutable record on the blockchain!</em></li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Class Chat */}
+                                    <div style={{background: 'rgba(6, 182, 212, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(6, 182, 212, 0.3)'}}>
+                                        <h3 style={{color: '#22d3ee', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>💬 Class Chat</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Messages:</strong> Chat messages from all classmates</li>
+                                            <li><strong>Click Names:</strong> Click a sender's name to copy their address</li>
+                                            <li><strong>Post Message:</strong> Send a message that gets recorded on the blockchain</li>
+                                            <li><em>Every message is a real blockchain transaction!</em></li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Sidebar */}
+                                    <div style={{background: 'rgba(100, 116, 139, 0.2)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(100, 116, 139, 0.4)'}}>
+                                        <h3 style={{color: '#94a3b8', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>📋 Left Sidebar</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Connection Status:</strong> Green = connected, Red = disconnected</li>
+                                            <li><strong>Your Account:</strong> Import/Export/Create wallets</li>
+                                            <li><strong>Your Nickname:</strong> Set how you appear to classmates</li>
+                                            <li><strong>Classmates List:</strong> See who's in the class - click to send them ETH</li>
+                                            <li><strong>🧪 Diagnostics:</strong> Troubleshoot connection issues</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    {/* Lab Progress */}
+                                    <div style={{background: 'rgba(34, 197, 94, 0.1)', padding: '1.25rem', borderRadius: '0.75rem', border: '1px solid rgba(34, 197, 94, 0.3)'}}>
+                                        <h3 style={{color: '#22c55e', margin: '0 0 0.75rem 0', fontSize: '1.1rem'}}>🎯 Lab Progress (Bottom)</h3>
+                                        <ul style={{color: '#cbd5e1', margin: 0, paddingLeft: '1.25rem', lineHeight: 1.8}}>
+                                            <li><strong>Progress Checklist:</strong> Track what activities you've completed</li>
+                                            <li><strong>Checkmarks:</strong> ✅ = completed, ⬜ = not yet done</li>
+                                            <li><em>Complete activities to finish the lab!</em></li>
+                                        </ul>
+                                    </div>
+                                    
+                                </div>
+                                
+                                <div style={{marginTop: '2rem', padding: '1rem', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '0.5rem', textAlign: 'center'}}>
+                                    <p style={{color: '#93c5fd', margin: 0, fontSize: '0.9rem'}}>
+                                        💡 <strong>Pro Tip:</strong> Click anywhere outside this guide to close it, or press the ✕ button above.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

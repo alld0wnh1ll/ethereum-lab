@@ -54,9 +54,9 @@ export function ExploreView({ missions, exploreProgress, setExploreProgress, onB
   return (
     <div className="explore-view">
       <div className="explore-header">
-        <h2>🛰 Deep Dive: Staking, Validators & DeFi</h2>
+        <h2>🔍 Blockchain Forensics Lab</h2>
         <p style={{fontSize: '1.1rem', color: '#cbd5e1', marginBottom: '1rem'}}>
-          Explore advanced Ethereum concepts through interactive missions
+          Learn to analyze addresses, trace transactions, and follow the money on the blockchain
         </p>
         <div style={{
           background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(139,92,246,0.2))',
@@ -64,7 +64,18 @@ export function ExploreView({ missions, exploreProgress, setExploreProgress, onB
           borderRadius: '0.75rem',
           marginTop: '1rem'
         }}>
-          <strong style={{fontSize: '1.2rem'}}>Progress: {completedCount}/{totalCount} missions completed</strong>
+          <strong style={{fontSize: '1.2rem'}}>Progress: {completedCount}/{totalCount} investigations completed</strong>
+        </div>
+        <div style={{
+          background: 'rgba(251, 191, 36, 0.15)',
+          border: '1px solid rgba(251, 191, 36, 0.4)',
+          padding: '1rem',
+          borderRadius: '0.75rem',
+          marginTop: '1rem',
+          fontSize: '0.95rem'
+        }}>
+          <strong style={{color: '#fbbf24'}}>💡 Tip:</strong> Use the <strong>CLI Labs</strong> tab to open the Playground and run these commands. 
+          Store variables with <code style={{background: '#1e293b', padding: '2px 6px', borderRadius: '4px'}}>ctx.varName = value</code>
         </div>
       </div>
 
@@ -169,6 +180,59 @@ export function ExploreView({ missions, exploreProgress, setExploreProgress, onB
                         </li>
                       ))}
                     </ul>
+                  )}
+
+                  {/* Instructions Section */}
+                  {mission.instructions && (
+                    <div style={{
+                      background: '#1e293b',
+                      borderRadius: '0.75rem',
+                      padding: '1.5rem',
+                      marginBottom: '1.5rem',
+                      border: '1px solid #334155'
+                    }}>
+                      <h4 style={{color: '#22c55e', marginTop: 0, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                        <span>📋</span> {mission.instructions.title}
+                      </h4>
+                      <p style={{color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1rem'}}>
+                        Run these commands in the Playground (CLI Labs → option 8)
+                      </p>
+                      <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                        {mission.instructions.steps.map((step, sIdx) => (
+                          <div key={sIdx} style={{
+                            background: '#0f172a',
+                            borderRadius: '0.5rem',
+                            overflow: 'hidden',
+                            border: '1px solid #334155'
+                          }}>
+                            <div style={{
+                              padding: '0.75rem 1rem',
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              borderBottom: '1px solid #334155',
+                              color: '#86efac',
+                              fontWeight: '600',
+                              fontSize: '0.9rem'
+                            }}>
+                              {step.label}
+                            </div>
+                            <pre style={{
+                              margin: 0,
+                              padding: '1rem',
+                              background: '#0f172a',
+                              color: '#fbbf24',
+                              fontFamily: "'Fira Code', 'Monaco', 'Consolas', monospace",
+                              fontSize: '0.85rem',
+                              lineHeight: '1.6',
+                              overflow: 'auto',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word'
+                            }}>
+                              {step.code}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   {mission.quiz && (
@@ -294,7 +358,7 @@ export function ExploreView({ missions, exploreProgress, setExploreProgress, onB
           className="primary-btn"
           onClick={onContinue}
         >
-          Continue to Learn Module →
+          Continue to CLI Playground →
         </button>
       </div>
     </div>
