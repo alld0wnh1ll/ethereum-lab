@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\Lock.sol": {
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\Lock.sol": {
       "lastModificationDate": 1763565464813,
       "contentHash": "bd7fed5026b3e84cef024d695997642f",
       "sourceName": "contracts/Lock.sol",
@@ -36,8 +36,8 @@
         "Lock"
       ]
     },
-    "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\MyStakingPool.sol": {
-      "lastModificationDate": 1763659734722,
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\MyStakingPool.sol": {
+      "lastModificationDate": 1763664963670,
       "contentHash": "562b7dd22467ddfff720282b06c1d49b",
       "sourceName": "contracts/MyStakingPool.sol",
       "solcConfig": {
@@ -71,8 +71,8 @@
         "MyStakingPool"
       ]
     },
-    "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\PoS.sol": {
-      "lastModificationDate": 1765394077791,
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\PoS.sol": {
+      "lastModificationDate": 1765394464185,
       "contentHash": "61b1df9875c0466ee88812ee7439ef4b",
       "sourceName": "contracts/PoS.sol",
       "solcConfig": {
@@ -106,8 +106,8 @@
         "PoSSimulator"
       ]
     },
-    "C:\\Users\\nicholas.harrell\\Desktop\\Projects\\blockchain_web\\contracts\\SimpleStorage.sol": {
-      "lastModificationDate": 1763659734718,
+    "C:\\Users\\nicholas.harrell\\Desktop\\03_Projects\\Projects\\blockchain_web\\contracts\\SimpleStorage.sol": {
+      "lastModificationDate": 1763664963670,
       "contentHash": "ee802856d7180c6a91aa758cc2edc1da",
       "sourceName": "contracts/SimpleStorage.sol",
       "solcConfig": {

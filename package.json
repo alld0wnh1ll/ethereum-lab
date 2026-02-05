@@ -9,7 +9,12 @@
     "web": "cd frontend && npm run dev -- --host",
     "postinstall": "npm install --prefix frontend",
     "build": "npm run build --prefix frontend",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lab1": "hardhat run scripts/cli-labs/1-explore-blockchain.js --network localhost",
+    "lab2": "hardhat run scripts/cli-labs/2-sign-transaction.js --network localhost",
+    "lab3": "hardhat run scripts/cli-labs/3-deploy-contract.js --network localhost",
+    "lab4": "hardhat run scripts/cli-labs/4-query-data.js --network localhost",
+    "lab5": "hardhat run scripts/cli-labs/5-validator-simulation.js --network localhost"
   },
   "keywords": [],
   "author": "",

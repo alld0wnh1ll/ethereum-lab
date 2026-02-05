@@ -7319,7 +7319,8 @@ function App() {
   }, [])
   const [messages, setMessages] = useState([])
   const [chatInput, setChatInput] = useState("")
-  const [validators, setValidators] = useState([])
+  const [validators, setValidators] = useState([]) // Note: This includes all participants (stakers + chatters)
+  const [actualValidatorCount, setActualValidatorCount] = useState(0) // Actual stakers from contract
   const [statusMsg, setStatusMsg] = useState('')
   const [isSyncing, setIsSyncing] = useState(false)
   const hasAutoJoined = useRef(false) // Track if we've auto-joined this session
@@ -7871,6 +7872,10 @@ function App() {
             return combined;
           });
         }
+        
+        // Get actual validator count from contract (only those currently staking)
+        const validatorCount = await contract.getValidatorCount()
+        setActualValidatorCount(Number(validatorCount))
 
       } catch (e) {
         console.warn("syncBlockchainData error:", e);
@@ -8066,6 +8071,7 @@ function App() {
           setCurrentEpoch(data.network.currentEpoch);
           setTimeUntilNextEpoch(data.network.timeUntilNextEpoch);
           setCurrentAPY(data.network.currentAPY);
+          setActualValidatorCount(data.network.validatorCount || 0);
         }
         
         console.log('[App] Sync update - Block:', data.blockNumber, 'Validators:', data.validators?.length || 0);
@@ -9243,7 +9249,7 @@ function App() {
                         <SocialProof 
                             validators={validators} 
                             messages={messages}
-                            stakersCount={validators.filter(v => v && typeof v === 'string').length}
+                            stakersCount={actualValidatorCount}
                         />
                     </div>
                     
