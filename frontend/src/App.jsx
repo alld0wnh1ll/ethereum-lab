@@ -3,6 +3,7 @@ import { ethers } from 'ethers'
 import { connectWallet, checkNodeStatus, getGuestWallet } from './web3'
 import PoSABI from './PoS.json'
 import { InstructorView } from './views/InstructorView'
+import { DiagnosticsView } from './views/DiagnosticsView'
 import { blockchainSync } from './lib/BlockchainSync'
 import './index.css'
 
@@ -664,7 +665,7 @@ const EXPLORE_MISSIONS = [
             "Slashed validators are forcibly ejected from the network"
         ],
         miniLab: 'slashing-penalty',
-        video: "https://www.youtube.com/embed/6Dzv8DDob3o",
+        video: "https://www.youtube.com/embed/z7XUgjzvfCQ",
         quiz: {
             question: "What is slashing designed to prevent?",
             options: [
@@ -8080,7 +8081,7 @@ function App() {
   // Compute current mode from view
   const currentMode = ['intro', 'concepts', 'explore', 'sim'].includes(view) 
     ? 'learning' 
-    : view === 'live' 
+    : (view === 'live' || view === 'diagnostics')
       ? 'live' 
       : view === 'cli' 
         ? 'cli' 
@@ -8245,6 +8246,24 @@ function App() {
                         >
                             🌐 Go to Live Network →
                         </button>
+                        <button
+                            onClick={() => setView('diagnostics')}
+                            style={{
+                                width: '100%',
+                                marginTop: '0.6rem',
+                                padding: '0.7rem',
+                                background: 'rgba(59,130,246,0.15)',
+                                border: '1px solid rgba(59,130,246,0.35)',
+                                borderRadius: '0.5rem',
+                                color: '#bfdbfe',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                            }}
+                            title="Run safe connectivity checks to confirm your setup"
+                        >
+                            🧪 Run Diagnostics
+                        </button>
                     </div>
                 </nav>
             )}
@@ -8287,6 +8306,46 @@ function App() {
                         }}>
                             {nodeStatus.connected ? `Block #${nodeStatus.blockNumber}` : 'Disconnected'}
                         </span>
+                    </div>
+
+                    {/* Diagnostics quick access */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <button
+                            onClick={() => setView('diagnostics')}
+                            disabled={view === 'diagnostics'}
+                            style={{
+                                flex: 1,
+                                padding: '0.6rem',
+                                borderRadius: '0.5rem',
+                                border: '1px solid rgba(59,130,246,0.35)',
+                                background: view === 'diagnostics' ? 'rgba(59,130,246,0.25)' : 'rgba(59,130,246,0.12)',
+                                color: '#bfdbfe',
+                                fontWeight: 'bold',
+                                cursor: view === 'diagnostics' ? 'not-allowed' : 'pointer',
+                                fontSize: '0.8rem'
+                            }}
+                            title="Run safe connectivity checks"
+                        >
+                            🧪 Diagnostics
+                        </button>
+                        {view === 'diagnostics' && (
+                            <button
+                                onClick={() => setView('live')}
+                                style={{
+                                    padding: '0.6rem 0.7rem',
+                                    borderRadius: '0.5rem',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    background: 'rgba(0,0,0,0.2)',
+                                    color: '#e2e8f0',
+                                    fontWeight: 'bold',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem'
+                                }}
+                                title="Back to Live Network"
+                            >
+                                ↩ Live
+                            </button>
+                        )}
                     </div>
                     
                     {/* Classmates Roster */}
@@ -10219,6 +10278,17 @@ function App() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* 3b. DIAGNOSTICS VIEW */}
+            {view === 'diagnostics' && (
+                <DiagnosticsView
+                    rpcUrl={rpcUrl}
+                    provider={provider}
+                    wallet={wallet}
+                    posAddress={posAddress}
+                    PoSABI={PoSABI}
+                />
             )}
             
             {/* CLI LABS VIEW */}
