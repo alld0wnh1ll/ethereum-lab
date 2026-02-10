@@ -1629,14 +1629,16 @@ function CLILabsView() {
     );
 
     const menuOptions = [
-        { num: '1', label: 'Network info', desc: 'View blockchain connection status' },
-        { num: '2', label: 'Block details', desc: 'Explore block data and transactions' },
-        { num: '3', label: 'Account balances', desc: 'Check ETH balances for addresses' },
-        { num: '4', label: 'Transaction lookup', desc: 'Find and analyze transactions' },
-        { num: '5', label: 'Select account', desc: 'Choose which account to use' },
-        { num: '6', label: 'Send ETH', desc: 'Transfer ETH between accounts' },
-        { num: '7', label: 'Contract interaction', desc: 'Call contract functions' },
-        { num: '8', label: 'Playground (Analyst Console)', desc: 'Interactive forensics environment', highlight: true }
+        { num: '1', label: 'Network info', desc: 'View blockchain connection status (chain ID, block number, gas price)' },
+        { num: '2', label: 'Block details', desc: 'Explore block data, timestamps, and transactions within a block' },
+        { num: '3', label: 'Account balances', desc: 'Check ETH balances for all test accounts at once' },
+        { num: '4', label: 'Transaction lookup', desc: 'Find and analyze transactions by hash — see sender, recipient, value, gas' },
+        { num: '5', label: 'Select account', desc: 'Switch between test accounts or import your own private key' },
+        { num: '6', label: 'Send ETH', desc: 'Transfer ETH between accounts — practice real transaction mechanics' },
+        { num: '7', label: 'Contract interaction', desc: 'Call PoS contract functions (stake, unstake, check rewards)' },
+        { num: '8', label: 'Playground (Analyst Console)', desc: 'Interactive JavaScript console for freeform blockchain forensics', highlight: true },
+        { num: '9', label: 'Contract Builder Lab', desc: 'Build, compile, and deploy smart contracts from 6 templates', highlight2: true },
+        { num: '10', label: 'Account Manager', desc: 'Generate new wallets, import keys, fund student accounts' }
     ];
 
     return (
@@ -1680,10 +1682,30 @@ function CLILabsView() {
                         3. Configure connection (get values from instructor):
                     </p>
                     <CodeBlock 
-                        code={`export RPC_URL="http://INSTRUCTOR_IP:8545"
+                        code={`# Windows PowerShell:
+$env:RPC_URL="http://INSTRUCTOR_IP:8545"
+$env:CONTRACT_ADDRESS="0x..."
+
+# Mac / Linux / Codespaces:
+export RPC_URL="http://INSTRUCTOR_IP:8545"
 export CONTRACT_ADDRESS="0x..."`} 
-                        id="env" 
+                        id="env"
+                        label="Set environment variables (choose your platform)"
                     />
+                    <div style={{
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '0.5rem',
+                        padding: '0.75rem 1rem',
+                        marginTop: '0.5rem'
+                    }}>
+                        <p style={{color: '#93c5fd', margin: 0, fontSize: '0.85rem'}}>
+                            <strong>Tip:</strong> Replace <code style={{color: '#fbbf24'}}>INSTRUCTOR_IP</code> with your instructor's 
+                            actual IP address (e.g. <code style={{color: '#fbbf24'}}>192.168.1.100</code>). The contract address starts 
+                            with <code style={{color: '#fbbf24'}}>0x</code> and is 42 characters long. If using GitHub Codespaces, 
+                            these may already be configured.
+                        </p>
+                    </div>
                 </div>
 
                 <div>
@@ -1709,7 +1731,12 @@ export CONTRACT_ADDRESS="0x..."`}
                 </p>
                 
                 <div style={{display: 'grid', gap: '0.5rem'}}>
-                    {menuOptions.map(opt => (
+                    {menuOptions.map(opt => {
+                        const isHighlighted = opt.highlight || opt.highlight2;
+                        const accentColor = opt.highlight ? '#fbbf24' : opt.highlight2 ? '#a78bfa' : '#3b82f6';
+                        const bgColor = opt.highlight ? 'rgba(251, 191, 36, 0.15)' : opt.highlight2 ? 'rgba(167, 139, 250, 0.15)' : 'rgba(15, 23, 42, 0.5)';
+                        const borderColor = opt.highlight ? 'rgba(251, 191, 36, 0.4)' : opt.highlight2 ? 'rgba(167, 139, 250, 0.4)' : 'transparent';
+                        return (
                         <div 
                             key={opt.num}
                             style={{
@@ -1717,27 +1744,28 @@ export CONTRACT_ADDRESS="0x..."`}
                                 alignItems: 'center',
                                 gap: '1rem',
                                 padding: '0.75rem 1rem',
-                                background: opt.highlight ? 'rgba(251, 191, 36, 0.15)' : 'rgba(15, 23, 42, 0.5)',
+                                background: bgColor,
                                 borderRadius: '0.5rem',
-                                border: opt.highlight ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid transparent'
+                                border: `1px solid ${borderColor}`
                             }}
                         >
                             <span style={{
                                 width: '32px',
                                 height: '32px',
                                 borderRadius: '50%',
-                                background: opt.highlight ? '#fbbf24' : '#3b82f6',
-                                color: opt.highlight ? '#0f172a' : 'white',
+                                background: accentColor,
+                                color: isHighlighted ? '#0f172a' : 'white',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 fontWeight: 'bold',
-                                fontSize: '0.9rem'
+                                fontSize: '0.85rem',
+                                flexShrink: 0
                             }}>
                                 {opt.num}
                             </span>
                             <div style={{flex: 1}}>
-                                <div style={{color: opt.highlight ? '#fbbf24' : '#f8fafc', fontWeight: '600'}}>
+                                <div style={{color: isHighlighted ? accentColor : '#f8fafc', fontWeight: '600'}}>
                                     {opt.label}
                                 </div>
                                 <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>
@@ -1751,13 +1779,28 @@ export CONTRACT_ADDRESS="0x..."`}
                                     padding: '0.25rem 0.75rem',
                                     borderRadius: '999px',
                                     fontSize: '0.75rem',
-                                    fontWeight: 'bold'
+                                    fontWeight: 'bold',
+                                    flexShrink: 0
                                 }}>
                                     FORENSICS
                                 </span>
                             )}
+                            {opt.highlight2 && (
+                                <span style={{
+                                    background: '#a78bfa',
+                                    color: '#0f172a',
+                                    padding: '0.25rem 0.75rem',
+                                    borderRadius: '999px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold',
+                                    flexShrink: 0
+                                }}>
+                                    CONTRACTS
+                                </span>
+                            )}
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
@@ -1850,16 +1893,379 @@ export CONTRACT_ADDRESS="0x..."`}
                 marginBottom: '2rem',
                 border: '1px solid #334155'
             }}>
-                <h3 style={{color: '#f8fafc', margin: '0 0 1rem 0'}}>📚 Individual Lab Scripts</h3>
-                <p style={{color: '#94a3b8', margin: '0 0 1rem 0'}}>
-                    Run specific learning modules directly:
+                <h3 style={{color: '#f8fafc', margin: '0 0 0.5rem 0'}}>📚 Individual Lab Scripts</h3>
+                <p style={{color: '#94a3b8', margin: '0 0 1.5rem 0'}}>
+                    Each lab is a standalone guided exercise. Run them directly from the <code style={{background: '#0f172a', padding: '2px 6px', borderRadius: '4px', color: '#fbbf24'}}>scripts/cli-labs/standalone</code> directory, 
+                    or access Labs 4 and 5 from the Interactive CLI menu.
                 </p>
                 
-                <div style={{display: 'grid', gap: '0.75rem'}}>
-                    <CodeBlock code="node 1-explore-blockchain.js" id="lab1" label="Lab 1: Blockchain Basics" />
-                    <CodeBlock code="node 2-sign-transaction.js" id="lab2" label="Lab 2: Transaction Mechanics" />
-                    <CodeBlock code="node 3-interact-contract.js" id="lab3" label="Lab 3: Contract Interaction" />
-                    <CodeBlock code="node 4-forensics.js" id="lab4" label="Lab 4: Forensics Training" />
+                <div style={{display: 'grid', gap: '1.5rem'}}>
+                    {/* Lab 1 */}
+                    <div>
+                        <CodeBlock code="node 1-explore-blockchain.js" id="lab1" label="Lab 1: Explore the Blockchain" />
+                        <div style={{padding: '0 0.5rem', color: '#cbd5e1', fontSize: '0.9rem'}}>
+                            <p style={{margin: '0.25rem 0 0.5rem 0'}}>
+                                <strong>What you'll do:</strong> Connect to the blockchain and run your first queries — get the current block number, 
+                                inspect block details (timestamp, miner, transactions), and check account balances.
+                            </p>
+                            <p style={{margin: 0, color: '#94a3b8', fontSize: '0.85rem'}}>
+                                <strong>Key concepts:</strong> JSON-RPC connection, blocks, block height, accounts, wei vs ETH
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Lab 2 */}
+                    <div>
+                        <CodeBlock code="node 2-sign-transaction.js" id="lab2" label="Lab 2: Sign & Send Transactions" />
+                        <div style={{padding: '0 0.5rem', color: '#cbd5e1', fontSize: '0.9rem'}}>
+                            <p style={{margin: '0.25rem 0 0.5rem 0'}}>
+                                <strong>What you'll do:</strong> Create a transaction from scratch, sign it with a private key, broadcast it to the network, 
+                                and watch it get mined into a block. You'll see exactly how gas fees are calculated and deducted.
+                            </p>
+                            <p style={{margin: 0, color: '#94a3b8', fontSize: '0.85rem'}}>
+                                <strong>Key concepts:</strong> Private key signing, nonce, gas limit, gas price, transaction lifecycle
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Lab 3 */}
+                    <div>
+                        <CodeBlock code="node 3-interact-contract.js" id="lab3" label="Lab 3: Interact with Smart Contracts" />
+                        <div style={{padding: '0 0.5rem', color: '#cbd5e1', fontSize: '0.9rem'}}>
+                            <p style={{margin: '0.25rem 0 0.5rem 0'}}>
+                                <strong>What you'll do:</strong> Connect to the deployed PoS contract, read its state (total staked, your balance), 
+                                send transactions to stake/unstake ETH, and listen for real-time events. Requires <code style={{color: '#fbbf24'}}>CONTRACT_ADDRESS</code> env variable.
+                            </p>
+                            <p style={{margin: 0, color: '#94a3b8', fontSize: '0.85rem'}}>
+                                <strong>Key concepts:</strong> ABI, contract instance, read vs write calls, events, transaction receipts
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Lab 4 */}
+                    <div>
+                        <CodeBlock code="node 4-forensics.js" id="lab4" label="Lab 4: Blockchain Forensics" />
+                        <div style={{padding: '0 0.5rem', color: '#cbd5e1', fontSize: '0.9rem'}}>
+                            <p style={{margin: '0.25rem 0 0.5rem 0'}}>
+                                <strong>What you'll do:</strong> Five guided forensics exercises — analyze addresses (EOA vs contract), trace transactions, 
+                                scan blocks for patterns, query contract events, and generate investigation reports. Also available as Interactive CLI option 8.
+                            </p>
+                            <p style={{margin: 0, color: '#94a3b8', fontSize: '0.85rem'}}>
+                                <strong>Key concepts:</strong> Address classification, receipt analysis, block scanning, event filtering, money flow tracking
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Lab 5 */}
+                    <div>
+                        <CodeBlock code="node 5-contract-builder.js" id="lab5" label="Lab 5: Smart Contract Builder" />
+                        <div style={{padding: '0 0.5rem', color: '#cbd5e1', fontSize: '0.9rem'}}>
+                            <p style={{margin: '0.25rem 0 0.5rem 0'}}>
+                                <strong>What you'll do:</strong> Select from 6 real-world contract templates (house sale, vehicle title, event tickets, voting, 
+                                crowdfunding, classroom voting), customize fields, compile with Hardhat, deploy to the blockchain, then interact with your contract. 
+                                Also available as Interactive CLI option 9.
+                            </p>
+                            <p style={{margin: 0, color: '#94a3b8', fontSize: '0.85rem'}}>
+                                <strong>Key concepts:</strong> Solidity, compilation, deployment, contract roles (admin/buyer/seller), view vs write functions
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Smart Contract Builder Guide */}
+            <div style={{
+                background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(139, 92, 246, 0.1))',
+                border: '2px solid rgba(167, 139, 250, 0.4)',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem'
+            }}>
+                <h3 style={{color: '#a78bfa', margin: '0 0 0.5rem 0'}}>🏗️ Smart Contract Builder (Option 9)</h3>
+                <p style={{color: '#e2e8f0', margin: '0 0 1.25rem 0'}}>
+                    Build and deploy real smart contracts from templates. Choose a use-case, customize fields, then compile and deploy to the live blockchain.
+                </p>
+
+                {/* Step-by-step workflow */}
+                <div style={{
+                    background: '#0f172a',
+                    borderRadius: '0.75rem',
+                    padding: '1.25rem',
+                    marginBottom: '1.25rem',
+                    border: '1px solid #334155'
+                }}>
+                    <h4 style={{color: '#c4b5fd', margin: '0 0 1rem 0', fontSize: '0.95rem'}}>Step-by-Step Workflow</h4>
+                    <div style={{display: 'grid', gap: '0.75rem'}}>
+                        {[
+                            { step: '1', text: 'Select a template', detail: 'Choose from 6 real-world contract types (house sale, voting, tickets, etc.)' },
+                            { step: '2', text: 'Customize fields', detail: 'Set names, prices, addresses, durations — or use defaults to get started quickly' },
+                            { step: '3', text: 'Review the Solidity code', detail: 'See the generated .sol file with your custom values baked in' },
+                            { step: '4', text: 'Compile with Hardhat', detail: 'The builder runs Hardhat compile automatically — look for "Compiled successfully"' },
+                            { step: '5', text: 'Deploy to blockchain', detail: 'Your contract goes live! You\'ll get a contract address (save this!)' },
+                            { step: '6', text: 'Interact via menu', detail: 'Call view functions (free) and write functions (cost gas) through the guided menu' }
+                        ].map(s => (
+                            <div key={s.step} style={{display: 'flex', gap: '0.75rem', alignItems: 'flex-start'}}>
+                                <span style={{
+                                    width: '26px', height: '26px', borderRadius: '50%',
+                                    background: '#a78bfa', color: '#0f172a',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontWeight: 'bold', fontSize: '0.8rem', flexShrink: 0, marginTop: '2px'
+                                }}>{s.step}</span>
+                                <div>
+                                    <div style={{color: '#e2e8f0', fontWeight: '600'}}>{s.text}</div>
+                                    <div style={{color: '#94a3b8', fontSize: '0.85rem'}}>{s.detail}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Contract Templates */}
+                <h4 style={{color: '#c4b5fd', margin: '0 0 0.75rem 0', fontSize: '0.95rem'}}>Available Templates</h4>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.75rem'}}>
+                    {[
+                        { icon: '🏠', name: 'House / Property Sale', desc: 'Real estate escrow with deposit, inspection period, and title transfer. Roles: Admin, Seller, Buyer.', fields: 'Address, price, deposit %, inspection days' },
+                        { icon: '🚗', name: 'Vehicle Title Transfer', desc: 'Ownership registry with VIN tracking, title status (clean/salvage/rebuilt), and mileage history.', fields: 'VIN, make, model, year, owner' },
+                        { icon: '🎟️', name: 'Event Tickets', desc: 'Limited-supply ticket sales with purchases, transfers, check-in verification, and refunds on cancellation.', fields: 'Event name, max supply, price, date' },
+                        { icon: '🗳️', name: 'Voting System', desc: 'Multi-option voting with deadlines. Track votes, tally results, extend deadlines if needed.', fields: 'Title, options, duration, admin' },
+                        { icon: '💸', name: 'Crowdfunding Campaign', desc: 'Fundraising with goal amounts and deadlines. Auto-refund if goal not met; creator withdraws when reached.', fields: 'Campaign name, goal, duration, min contribution' },
+                        { icon: '🎓', name: 'Classroom Voting Demo', desc: 'Simple A/B voting for live demos. Instructor opens/closes voting, students vote, results shown in real-time.', fields: 'Question, Option A, Option B' }
+                    ].map(t => (
+                        <div key={t.name} style={{
+                            background: '#1e293b',
+                            borderRadius: '0.75rem',
+                            padding: '1rem',
+                            border: '1px solid #334155'
+                        }}>
+                            <div style={{fontSize: '1.5rem', marginBottom: '0.5rem'}}>{t.icon}</div>
+                            <div style={{color: '#e2e8f0', fontWeight: '600', marginBottom: '0.25rem'}}>{t.name}</div>
+                            <div style={{color: '#94a3b8', fontSize: '0.85rem', marginBottom: '0.5rem'}}>{t.desc}</div>
+                            <div style={{color: '#818cf8', fontSize: '0.8rem'}}>
+                                <strong>Customize:</strong> {t.fields}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Contract Interaction Guide */}
+            <div style={{
+                background: '#1e293b',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+                border: '1px solid #334155'
+            }}>
+                <h3 style={{color: '#f8fafc', margin: '0 0 0.5rem 0'}}>📝 Understanding Contract Functions</h3>
+                <p style={{color: '#94a3b8', margin: '0 0 1.25rem 0'}}>
+                    Smart contracts expose three types of functions. Understanding the difference is key to interacting with any contract.
+                </p>
+
+                <div style={{display: 'grid', gap: '1rem'}}>
+                    {/* View functions */}
+                    <div style={{
+                        background: 'rgba(34, 197, 94, 0.08)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem'
+                    }}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                            <span style={{
+                                background: '#22c55e', color: '#0f172a', padding: '0.15rem 0.6rem',
+                                borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold'
+                            }}>VIEW</span>
+                            <span style={{color: '#86efac', fontWeight: '600'}}>Read-Only — Free, No Gas</span>
+                        </div>
+                        <p style={{color: '#cbd5e1', margin: '0 0 0.5rem 0', fontSize: '0.9rem'}}>
+                            View functions read data from the blockchain without changing anything. They execute locally and cost nothing.
+                        </p>
+                        <CodeBlock code={`// Examples of view functions:\nawait contract.totalStaked()          // How much ETH is staked\nawait contract.getStake(address)      // A specific validator's stake\nawait contract.owner()                // Who deployed the contract`} id="view-ex" />
+                    </div>
+
+                    {/* Write functions */}
+                    <div style={{
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem'
+                    }}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                            <span style={{
+                                background: '#3b82f6', color: 'white', padding: '0.15rem 0.6rem',
+                                borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold'
+                            }}>WRITE</span>
+                            <span style={{color: '#93c5fd', fontWeight: '600'}}>State-Changing — Costs Gas</span>
+                        </div>
+                        <p style={{color: '#cbd5e1', margin: '0 0 0.5rem 0', fontSize: '0.9rem'}}>
+                            Write functions modify the blockchain state. They create a transaction, require gas, and must be mined into a block.
+                        </p>
+                        <CodeBlock code={`// Examples of write functions:\nawait contract.unstake()              // Withdraw staked ETH\nawait contract.sendMessage("Hello!")  // Post to on-chain chat\n// Returns a transaction receipt with status, gas used, etc.`} id="write-ex" />
+                    </div>
+
+                    {/* Payable functions */}
+                    <div style={{
+                        background: 'rgba(251, 191, 36, 0.08)',
+                        border: '1px solid rgba(251, 191, 36, 0.3)',
+                        borderRadius: '0.75rem',
+                        padding: '1rem'
+                    }}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                            <span style={{
+                                background: '#fbbf24', color: '#0f172a', padding: '0.15rem 0.6rem',
+                                borderRadius: '999px', fontSize: '0.75rem', fontWeight: 'bold'
+                            }}>PAYABLE</span>
+                            <span style={{color: '#fcd34d', fontWeight: '600'}}>Accepts ETH — Costs Gas + Value</span>
+                        </div>
+                        <p style={{color: '#cbd5e1', margin: '0 0 0.5rem 0', fontSize: '0.9rem'}}>
+                            Payable functions accept ETH along with the transaction. You send both gas (fee) and value (the ETH the contract receives).
+                        </p>
+                        <CodeBlock code={`// Examples of payable functions:\nawait contract.stake({ value: ethers.parseEther("2.0") })\n// Sends 2 ETH to the contract as your stake\n// The { value: ... } option is how you attach ETH to a call`} id="payable-ex" />
+                    </div>
+                </div>
+
+                <div style={{
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    marginTop: '1rem'
+                }}>
+                    <p style={{color: '#93c5fd', margin: 0, fontSize: '0.85rem'}}>
+                        <strong>Tip:</strong> In the Contract Builder menu, functions are labeled <span style={{color: '#86efac'}}>[view]</span>, <span style={{color: '#60a5fa'}}>[write]</span>, or <span style={{color: '#fcd34d'}}>[payable]</span> so 
+                        you always know what type you're calling. View functions return instantly; write and payable functions 
+                        wait for the transaction to be mined (~12 seconds).
+                    </p>
+                </div>
+            </div>
+
+            {/* Expanded Playground Examples */}
+            <div style={{
+                background: '#1e293b',
+                borderRadius: '1rem',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+                border: '1px solid #334155'
+            }}>
+                <h3 style={{color: '#f8fafc', margin: '0 0 0.5rem 0'}}>🔬 Playground Forensics Walkthroughs</h3>
+                <p style={{color: '#94a3b8', margin: '0 0 1.25rem 0'}}>
+                    Copy these complete workflows into the Playground (Option 8) to practice real forensics techniques.
+                </p>
+
+                {/* Walkthrough 1: Full Address Investigation */}
+                <div style={{marginBottom: '1.25rem'}}>
+                    <h4 style={{color: '#86efac', margin: '0 0 0.5rem 0', fontSize: '0.95rem'}}>
+                        Walkthrough 1: Full Address Investigation
+                    </h4>
+                    <p style={{color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 0.75rem 0'}}>
+                        Analyze an unknown address — determine its type, check balance, review activity, and check staking status.
+                    </p>
+                    <CodeBlock id="wt1" code={`// Step 1: Pick a target address
+ctx.target = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+
+// Step 2: Is it a wallet or a contract?
+ctx.code = await provider.getCode(ctx.target)
+console.log('Type:', ctx.code === '0x' ? 'Wallet (EOA)' : 'Smart Contract')
+
+// Step 3: Check the balance
+ctx.balance = await provider.getBalance(ctx.target)
+console.log('Balance:', formatEth(ctx.balance), 'ETH')
+
+// Step 4: How many transactions has it sent?
+ctx.nonce = await provider.getTransactionCount(ctx.target)
+console.log('Transactions sent:', ctx.nonce)
+
+// Step 5: Check staking status (if contract is available)
+ctx.stake = await contract.getStake(ctx.target)
+console.log('Staked:', formatEth(ctx.stake), 'ETH')`} />
+                </div>
+
+                {/* Walkthrough 2: Trace a Transaction */}
+                <div style={{marginBottom: '1.25rem'}}>
+                    <h4 style={{color: '#86efac', margin: '0 0 0.5rem 0', fontSize: '0.95rem'}}>
+                        Walkthrough 2: Trace a Suspicious Transaction
+                    </h4>
+                    <p style={{color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 0.75rem 0'}}>
+                        Given a transaction hash, extract every detail — who sent it, where it went, how much gas was burned, and what events fired.
+                    </p>
+                    <CodeBlock id="wt2" code={`// Step 1: Get a recent transaction hash from a block
+ctx.block = await provider.getBlock('latest', true)
+ctx.hash = ctx.block.prefetchedTransactions[0]?.hash
+console.log('Investigating tx:', ctx.hash)
+
+// Step 2: Pull the full transaction object
+ctx.tx = await provider.getTransaction(ctx.hash)
+console.log('From:', ctx.tx.from)
+console.log('To:', ctx.tx.to)
+console.log('Value:', formatEth(ctx.tx.value), 'ETH')
+console.log('Gas limit:', ctx.tx.gasLimit.toString())
+
+// Step 3: Get the execution receipt
+ctx.receipt = await provider.getTransactionReceipt(ctx.hash)
+console.log('Status:', ctx.receipt.status === 1 ? 'SUCCESS' : 'FAILED')
+console.log('Gas used:', ctx.receipt.gasUsed.toString())
+console.log('Events emitted:', ctx.receipt.logs.length)
+
+// Step 4: Calculate the actual fee
+ctx.fee = ctx.receipt.gasUsed * ctx.receipt.gasPrice
+console.log('Fee paid:', formatEth(ctx.fee), 'ETH')`} />
+                </div>
+
+                {/* Walkthrough 3: Scan blocks for activity */}
+                <div style={{marginBottom: '1.25rem'}}>
+                    <h4 style={{color: '#86efac', margin: '0 0 0.5rem 0', fontSize: '0.95rem'}}>
+                        Walkthrough 3: Scan Recent Blocks for Activity
+                    </h4>
+                    <p style={{color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 0.75rem 0'}}>
+                        Scan the last 10 blocks, count transactions, find the most active block, and identify high-value transfers.
+                    </p>
+                    <CodeBlock id="wt3" code={`// Scan the last 10 blocks
+ctx.latest = await provider.getBlockNumber()
+ctx.start = Math.max(0, ctx.latest - 10)
+ctx.summary = []
+
+for (let i = ctx.start; i <= ctx.latest; i++) {
+  const b = await provider.getBlock(i, true)
+  const txCount = b.prefetchedTransactions?.length || 0
+  const totalValue = b.prefetchedTransactions?.reduce(
+    (sum, tx) => sum + tx.value, 0n) || 0n
+  ctx.summary.push({
+    block: i,
+    txs: txCount,
+    totalETH: formatEth(totalValue),
+    time: toDate(b.timestamp)
+  })
+}
+console.table(ctx.summary)`} />
+                </div>
+
+                {/* Walkthrough 4: Contract interaction from Playground */}
+                <div>
+                    <h4 style={{color: '#86efac', margin: '0 0 0.5rem 0', fontSize: '0.95rem'}}>
+                        Walkthrough 4: Interact with a Deployed Contract
+                    </h4>
+                    <p style={{color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 0.75rem 0'}}>
+                        Connect to any deployed contract (including ones you built) from the Playground using its address and ABI.
+                    </p>
+                    <CodeBlock id="wt4" code={`// Connect to the PoS contract (already available as 'contract')
+ctx.totalStaked = await contract.totalStaked()
+console.log('Network total staked:', formatEth(ctx.totalStaked), 'ETH')
+
+// Query all staking events
+ctx.events = await contract.queryFilter('Staked', 0)
+console.log('Total staking events:', ctx.events.length)
+
+// Show who staked and how much
+ctx.events.forEach(e => {
+  console.log(formatAddr(e.args[0]), 'staked', formatEth(e.args[1]), 'ETH')
+})
+
+// Connect to a CUSTOM contract (e.g. one you deployed):
+// ctx.myContract = new ethers.Contract(
+//   '0xYOUR_CONTRACT_ADDRESS',
+//   ['function getTitle() view returns (string)', 
+//    'function vote(uint option)'],
+//   wallet
+// )`} />
                 </div>
             </div>
 
@@ -1872,7 +2278,7 @@ export CONTRACT_ADDRESS="0x..."`}
             }}>
                 <h3 style={{color: '#f8fafc', margin: '0 0 1rem 0'}}>👥 Test Accounts</h3>
                 <p style={{color: '#94a3b8', margin: '0 0 1rem 0'}}>
-                    All students share these test accounts. Each starts with 10,000 ETH:
+                    All students share these test accounts (Hardhat defaults). Each starts with 10,000 ETH. You can also generate your own wallet using Account Manager (Option 10).
                 </p>
                 
                 <div style={{
@@ -1890,7 +2296,24 @@ export CONTRACT_ADDRESS="0x..."`}
                         <span style={{color: '#fbbf24'}}>0x70997970C51812dc3A010C7d01b50e0d17dc79C8</span>
                         <span style={{color: '#94a3b8'}}>Account 2:</span>
                         <span style={{color: '#fbbf24'}}>0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC</span>
+                        <span style={{color: '#94a3b8'}}>Account 3:</span>
+                        <span style={{color: '#fbbf24'}}>0x90F79bf6EB2c4f870365E785982E1f101E93b906</span>
+                        <span style={{color: '#94a3b8'}}>Account 4:</span>
+                        <span style={{color: '#fbbf24'}}>0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65</span>
                     </div>
+                </div>
+
+                <div style={{
+                    background: 'rgba(251, 191, 36, 0.08)',
+                    border: '1px solid rgba(251, 191, 36, 0.2)',
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    marginTop: '0.75rem'
+                }}>
+                    <p style={{color: '#fcd34d', margin: 0, fontSize: '0.85rem'}}>
+                        <strong>Important:</strong> These are shared test accounts — everyone on the network can see and use them. 
+                        For your own private wallet, use Account Manager (Option 10) to generate a new keypair. Never use test private keys on mainnet!
+                    </p>
                 </div>
             </div>
         </div>
